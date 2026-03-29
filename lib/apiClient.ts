@@ -229,12 +229,20 @@ export interface Trade {
   symbol: string;
   type: 'BUY' | 'SELL';
   entryPrice: string;
+  exitPrice?: string | null;
   pnl?: number | null;
   netPnl?: number | null;
   entryDate: string;
   exitDate?: string | null;
   status: 'OPEN' | 'CLOSED';
   quantity: number;
+  preTradeAnalysis?: string | null;
+  postTradeAnalysis?: string | null;
+  entryEmotion?: string | null;
+  lessonsLearned?: string | null;
+  rating?: number | null;
+  tags?: { id: string; name: string }[] | null;
+  executionChecklist?: string | null;
 }
 export type TradeQueryParams = Partial<{
   page: number; limit: number; symbol: string; status: string;

@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Calendar, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, BarChart3, FileText } from 'lucide-react'
-import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay } from 'date-fns'
+import { Calendar, ChevronLeft, ChevronRight, TrendingUp, TrendingDown, BarChart3, FileText, Activity } from 'lucide-react'
+import { format, startOfMonth, endOfMonth, eachDayOfInterval, getDay, addMonths, subMonths, isSameDay, parseISO } from 'date-fns'
 import { cn } from '@/lib/utils'
 import { AnalysisStats } from '@/components/analytics/AnalysisStats'
 import { DayOfWeekChart } from '@/components/analytics/DayOfWeekChart'
@@ -14,19 +14,7 @@ import { YourStats } from '@/components/analytics/YourStats'
 import { SessionPerformance } from '@/components/analytics/SessionPerformance'
 import { TopSymbols } from '@/components/analytics/TopSymbols'
 import { TradeSimulation } from '@/components/analytics/TradeSimulation'
-
-interface Trade {
-  id: string
-  symbol: string
-  type: 'BUY' | 'SELL'
-  entryPrice: string
-  pnl?: number
-  netPnl?: number
-  entryDate: string
-  exitDate?: string
-  status: 'OPEN' | 'CLOSED'
-  quantity?: number
-}
+import { api, Trade } from '@/lib/apiClient'
 
 const timePeriods = [
   { label: 'Today', value: 'today' },
@@ -49,16 +37,35 @@ export default function PerformancePage() {
   const [timePeriod, setTimePeriod] = useState('30d')
   const [tradeFilter, setTradeFilter] = useState('all')
 
-  const { data: analyticsData } = useQuery<any>({
+  const { data: analyticsData, isLoading } = useQuery({
     queryKey: ['analytics', 'performance', timePeriod, tradeFilter],
-    queryFn: async () => {
-      const res = await fetch(`/api/analytics?period=${timePeriod}&filter=${tradeFilter}`)
-      if (!res.ok) throw new Error('Failed to fetch analytics')
-      return res.json()
-    },
+    queryFn: () => api.analytics.dashboard({ period: timePeriod, filter: tradeFilter }),
   })
 
-  const trades: Trade[] = analyticsData?.trades || []
+  // Memoized derived stats
+  const trades = useMemo(() => analyticsData?.trades || [], [analyticsData])
+  
+  const monthlyStatsAggregated = useMemo(() => {
+    if (!analyticsData?.monthlyStats || analyticsData.monthlyStats.length === 0) {
+      return {
+        bestMonth: { value: 0, label: '-' },
+        worstMonth: { value: 0, label: '-' },
+        averagePerMonth: 0
+      }
+    }
+    
+    const sorted = [...analyticsData.monthlyStats].sort((a, b) => b.profit - a.profit)
+    const best = sorted[0]
+    const worst = sorted[sorted.length - 1]
+    const avg = analyticsData.monthlyStats.reduce((acc, m) => acc + m.profit, 0) / analyticsData.monthlyStats.length
+    
+    return {
+      bestMonth: { value: best.profit, label: format(parseISO(`${best.month}-01`), 'MMM yyyy') },
+      worstMonth: { value: worst.profit, label: format(parseISO(`${worst.month}-01`), 'MMM yyyy') },
+      averagePerMonth: avg
+    }
+  }, [analyticsData])
+
   const monthStart = startOfMonth(currentMonth)
   const monthEnd = endOfMonth(currentMonth)
   const days = eachDayOfInterval({ start: monthStart, end: monthEnd })
@@ -73,20 +80,20 @@ export default function PerformancePage() {
     return analyticsData?.dailyPnL?.find((d: any) => d.date === dateKey)
   }
 
-  const selectedDayTrades = selectedDate
-    ? trades.filter((t: any) => {
-      if (!t.exitDate && !t.entryDate) return false;
-      const tradeDateStr = new Date(t.exitDate || t.entryDate).toISOString().split('T')[0]
-      const selectedDateStr = format(selectedDate, 'yyyy-MM-dd')
+  const selectedDayTrades = useMemo(() => {
+    if (!selectedDate) return []
+    const selectedDateStr = format(selectedDate, 'yyyy-MM-dd')
+    return trades.filter((t: Trade) => {
+      const tradeDateStr = t.exitDate ? format(new Date(t.exitDate), 'yyyy-MM-dd') : null
       return tradeDateStr === selectedDateStr
     })
-    : []
+  }, [selectedDate, trades])
 
   const formatCurrency = (value: number | string | undefined) => {
     if (value === undefined || value === null) return '$0.00'
     const num = typeof value === 'string' ? parseFloat(value) : value
     if (isNaN(num)) return '$0.00'
-    return `$${Math.abs(num).toFixed(2)}`
+    return `$${Math.abs(num).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
 
   const formatPercent = (value: number | undefined) => {
@@ -94,10 +101,18 @@ export default function PerformancePage() {
     return `${value.toFixed(1)}%`
   }
 
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Activity className="w-8 h-8 animate-spin text-blue-500" />
+      </div>
+    )
+  }
+
   const winPercent = analyticsData?.winRate || 0
   const grossProfit = parseFloat(analyticsData?.grossProfit || '0')
   const grossLoss = Math.abs(parseFloat(analyticsData?.grossLoss || '0'))
-  const netResult = parseFloat(analyticsData?.totalPnL || '0')
+  const netResult = parseFloat(analyticsData?.totalPnl || '0')
   const recentTrades = trades.slice(0, 5)
 
   return (
@@ -148,8 +163,8 @@ export default function PerformancePage() {
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-xl p-5">
           <p className="text-xs text-[var(--foreground-muted)] mb-1">TOTAL P&L</p>
-          <p className={cn("text-2xl font-bold", parseFloat(analyticsData?.totalPnL || '0') >= 0 ? "text-blue-400" : "text-red-400")}>
-            {parseFloat(analyticsData?.totalPnL || '0') >= 0 ? '' : '-'}{formatCurrency(analyticsData?.totalPnL)}
+          <p className={cn("text-2xl font-bold", parseFloat(analyticsData?.totalPnl || '0') >= 0 ? "text-blue-400" : "text-red-400")}>
+            {parseFloat(analyticsData?.totalPnl || '0') >= 0 ? '' : '-'}{formatCurrency(analyticsData?.totalPnl)}
           </p>
           <p className="text-xs text-[var(--foreground-muted)] mt-2">From {analyticsData?.totalTrades || 0} closed trades</p>
         </div>
@@ -173,7 +188,7 @@ export default function PerformancePage() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {analyticsData && (
           <div className="lg:col-span-1">
-            <AnalysisStats data={analyticsData} />
+            <AnalysisStats data={analyticsData as any} />
           </div>
         )}
         <div className="lg:col-span-2 bg-[var(--card-bg)] border border-[var(--border)] rounded-xl p-5">
@@ -216,7 +231,7 @@ export default function PerformancePage() {
             {days.map(day => {
               const data = getDayData(day)
               const isSelected = selectedDate && isSameDay(day, selectedDate)
-              const pnlValue = data?.pnl ? parseFloat(data.pnl) : 0
+              const pnlValue = data?.pnl ? (typeof data.pnl === 'string' ? parseFloat(data.pnl) : data.pnl) : 0
               return (
                 <button
                   key={day.toISOString()}
@@ -225,8 +240,8 @@ export default function PerformancePage() {
                     isSelected && "ring-2", pnlValue > 0 && "bg-blue-500/10", pnlValue < 0 && "bg-red-500/10")}
                 >
                   <span className="text-[10px] font-mono mb-1">{format(day, 'd')}</span>
-                  {data && <span className={cn("text-[9px] font-bold font-mono", pnlValue > 0 ? "text-blue-400" : "text-red-400")}>${Math.abs(pnlValue).toFixed(0)}</span>}
-                  {data && <span className="text-[8px] opacity-70">{data.trades} trade</span>}
+                  {data && <span className={cn("text-[8px] font-bold font-mono", pnlValue > 0 ? "text-blue-400" : "text-red-400")}>${Math.abs(pnlValue).toFixed(0)}</span>}
+                  {data && <span className="text-[8px] opacity-70">{data.tradesCount} trades</span>}
                 </button>
               )
             })}
@@ -249,10 +264,10 @@ export default function PerformancePage() {
                 <div>
                   <p className="text-[10px] text-[var(--foreground-muted)] mb-1 uppercase tracking-widest">Total P&L</p>
                   <p className={cn("font-bold text-sm",
-                    selectedDayTrades.reduce((acc: number, t: Trade) => acc + (parseFloat((t.netPnl || t.pnl || 0).toString())), 0) >= 0 ? 'text-blue-400' : 'text-red-400'
+                    selectedDayTrades.reduce((acc, t) => acc + (t.netPnl || 0), 0) >= 0 ? 'text-blue-400' : 'text-red-400'
                   )}>
-                    {selectedDayTrades.reduce((acc: number, t: Trade) => acc + (parseFloat((t.netPnl || t.pnl || 0).toString())), 0) >= 0 ? '' : '-'}
-                    {formatCurrency(selectedDayTrades.reduce((acc: number, t: Trade) => acc + (parseFloat((t.netPnl || t.pnl || 0).toString())), 0))}
+                    {selectedDayTrades.reduce((acc, t) => acc + (t.netPnl || 0), 0) >= 0 ? '' : '-'}
+                    {formatCurrency(selectedDayTrades.reduce((acc, t) => acc + (t.netPnl || 0), 0))}
                   </p>
                 </div>
                 <div>
@@ -262,15 +277,15 @@ export default function PerformancePage() {
                 <div>
                   <p className="text-[10px] text-[var(--foreground-muted)] mb-1 uppercase tracking-widest">Win Rate</p>
                   <p className="font-bold text-sm text-[var(--foreground)]">
-                    {Math.round((selectedDayTrades.filter((t: Trade) => parseFloat((t.netPnl || t.pnl || 0).toString()) > 0).length / selectedDayTrades.length) * 100)}%
+                    {Math.round((selectedDayTrades.filter(t => (t.netPnl || 0) > 0).length / selectedDayTrades.length) * 100)}%
                   </p>
                 </div>
               </div>
 
               {/* Trade List */}
               <div className="space-y-3 flex-1 overflow-y-auto pr-1 custom-scrollbar">
-                {selectedDayTrades.map((t: Trade) => {
-                  const pnlVal = parseFloat((t.netPnl || t.pnl || 0).toString())
+                {selectedDayTrades.map((t) => {
+                  const pnlVal = t.netPnl || 0
                   const isWin = pnlVal >= 0
                   return (
                     <div key={t.id} className="bg-[var(--input-bg)] border border-[var(--border)] rounded-xl p-4 flex justify-between items-center transition-all hover:border-[var(--border-hover)]">
@@ -342,14 +357,14 @@ export default function PerformancePage() {
             <FileText className="w-4 h-4 text-[var(--foreground-muted)]" /> Recent Trades
           </h3>
           <div className="space-y-2">
-            {recentTrades.map((trade: Trade) => (
+            {recentTrades.map((trade) => (
               <div key={trade.id} className="bg-[var(--background-tertiary)] border border-[var(--border)] rounded-xl py-2 px-4 flex justify-between items-center">
                 <div>
                   <p className="font-bold font-mono text-sm">{trade.symbol}</p>
-                  <p className="text-[10px] text-[var(--foreground-muted)]">{format(new Date(trade.entryDate), 'MMM d')}</p>
+                  <p className="text-[10px] text-[var(--foreground-muted)]">{trade.entryDate ? format(new Date(trade.entryDate), 'MMM d') : '-'}</p>
                 </div>
-                <span className={cn("font-bold text-sm", parseFloat((trade.netPnl || trade.pnl || 0).toString()) >= 0 ? 'text-blue-400' : 'text-red-400')}>
-                  {parseFloat((trade.netPnl || trade.pnl || 0).toString()) >= 0 ? '' : '-'}{formatCurrency(trade.netPnl || trade.pnl)}
+                <span className={cn("font-bold text-sm", (trade.netPnl || 0) >= 0 ? 'text-blue-400' : 'text-red-400')}>
+                  {(trade.netPnl || 0) >= 0 ? '' : '-'}{formatCurrency(trade.netPnl || 0)}
                 </span>
               </div>
             ))}
@@ -358,29 +373,31 @@ export default function PerformancePage() {
       </div>
 
       {/* Stats Cards */}
-      {analyticsData?.monthlyStats && <YourStats monthlyStats={analyticsData.monthlyStats} />}
+      <YourStats monthlyStats={monthlyStatsAggregated} />
 
       {/* Long/Short, Day Chart, Top Symbols */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {analyticsData?.longShortPerformance && <LongShortStats data={analyticsData.longShortPerformance} />}
-        {analyticsData?.dayOfWeekPerformance && <DayOfWeekChart data={analyticsData.dayOfWeekPerformance} />}
-        <TopSymbols trades={trades} />
+        {analyticsData?.longShortPerformance && <LongShortStats data={analyticsData.longShortPerformance as any} />}
+        {analyticsData?.dayOfWeekPerformance && <DayOfWeekChart data={analyticsData.dayOfWeekPerformance as any} />}
+        <TopSymbols trades={trades as any[]} />
       </div>
 
       {/* Session */}
-      {analyticsData?.sessionPerformance && <SessionPerformance data={analyticsData.sessionPerformance} />}
+      {analyticsData?.sessionPerformance && (
+        <SessionPerformance data={analyticsData.sessionPerformance as any} />
+      )}
 
       {/* Trade Simulation */}
       {trades.length > 0 && (
         <div className="mt-8">
-          <TradeSimulation trades={trades} />
+          <TradeSimulation trades={trades as any[]} />
         </div>
       )}
 
       {/* Detailed Stats */}
       {analyticsData && (
         <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-xl p-5 mt-8 mb-12">
-          <DetailedStatsTable data={analyticsData} />
+          <DetailedStatsTable data={analyticsData as any} />
         </div>
       )}
 

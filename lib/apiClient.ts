@@ -1,7 +1,7 @@
 // lib/apiClient.ts
 // Typed fetch wrapper — calls the Cloudflare Worker API
 // Reads NEXT_PUBLIC_API_URL from env (set in .env.local)
-import { MarketCondition, Emotion, Trade, TradeTag, Screenshot, Strategy, PartialClose, Tag, DailyPnLPoint } from '@/types';
+import { MarketCondition, Emotion, TradeTag, Screenshot, Strategy, PartialClose, Tag, DailyPnLPoint } from '@/types';
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8787';
@@ -163,8 +163,8 @@ export const api = {
     strategyPerformance: () => request<StrategyPerformanceResponse>('/api/analytics/strategy-performance'),
     dailyPnL: (params: { dateFrom?: string; dateTo?: string }) => 
       request<{ dailyPnL: DailyPnLPoint[] }>('/api/analytics/daily-pnl', { params }),
-    dashboard: (params: { period?: string }) =>
-      request<{ initialBalance: number; unrealizedPnl: number; dailyPnL: DailyPnLPoint[] }>('/api/analytics', { params }),
+    dashboard: (params: { period?: string; filter?: string }) =>
+      request<AnalyticsData>('/api/analytics', { params }),
     live: () =>
       request<{
         initialBalance: number;
@@ -214,7 +214,7 @@ export const api = {
 export interface UserProfile {
   id: string; email: string; name: string | null; image: string | null; reputation?: number;
 }
-export type { Trade, Strategy, Tag, DailyPnLPoint };
+export type { Strategy, Tag, DailyPnLPoint };
 export interface TradeListResponse {
   trades: Trade[];
   pagination: { total: number; page: number; limit: number; totalPages: number };
@@ -224,6 +224,18 @@ export type CreateTradeInput = Pick<Trade, 'symbol' | 'type' | 'entryPrice' | 'q
   tagIds?: string[];
   partialCloses?: { quantity: number; exitPrice: number; closedAt?: string; notes?: string | null }[];
 };
+export interface Trade {
+  id: string;
+  symbol: string;
+  type: 'BUY' | 'SELL';
+  entryPrice: string;
+  pnl?: number | null;
+  netPnl?: number | null;
+  entryDate: string;
+  exitDate?: string | null;
+  status: 'OPEN' | 'CLOSED';
+  quantity: number;
+}
 export type TradeQueryParams = Partial<{
   page: number; limit: number; symbol: string; status: string;
   type: string; strategyId: string; dateFrom: string; dateTo: string;
@@ -232,6 +244,38 @@ export type TradeQueryParams = Partial<{
 export interface Settings { theme: string; currency: string; dateFormat: string; timezone: string; tradesPerPage: number; accountBalance: number | null; [key: string]: unknown; }
 export interface AnalyticsOverview { overview: Record<string, number>; monthly: { month: string; pnl: number; trades: number }[]; }
 export interface StrategyPerformanceResponse { strategies: { strategyId: string | null; strategyName: string; totalTrades: number; winRate: number; totalPnl: number; avgPnl: number }[]; }
+
+export interface AnalyticsData {
+  initialBalance: number;
+  totalTrades: number;
+  winningTrades: number;
+  losingTrades: number;
+  winRate: number;
+  grossProfit: string;
+  grossLoss: string;
+  totalPnl: string;
+  totalNetPnl: string;
+  avgWinner: string;
+  avgLoser: string;
+  profitFactor: number;
+  expectancy: number;
+  bestTrade: string | number;
+  worstTrade: string | number;
+  winStreak: number;
+  lossStreak: number;
+  riskRewardRatio: string | number;
+  openTrades: number;
+  equityCurve: { date: string; equity: number; pnl: number; time: string; value: number; drawdown: number }[];
+  dailyPnL: { date: string; pnl: number; tradesCount: number }[];
+  trades: Trade[];
+  monthlyStats: { month: string; profit: number; trades: number }[];
+  dayOfWeekPerformance: { day: string; pnl: number; trades: number; winRate: number }[];
+  longShortPerformance: {
+    long: { wins: number; losses: number; pnl: number; trades: number; winRate: number; bestTrade: number };
+    short: { wins: number; losses: number; pnl: number; trades: number; winRate: number; bestTrade: number };
+  };
+  sessionPerformance?: { session: string; pnl: number; trades: number; winRate: number }[];
+}
 
 export interface NewsItem { title: string; link: string; date: string; description: string; source: string; }
 export interface Post { id: string; userId: string; user?: UserProfile; content: string; createdAt: string; likes: number; comments: number; }

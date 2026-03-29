@@ -287,12 +287,13 @@ analytics.get('/', async (c) => {
 
   try {
     // 1. Get initial balance from settings
-    const settings = await queryOne<{ accountBalance: number }>(
+    const settings = await queryOne<{ accountBalance: number; unrealizedPnl: number }>(
       c.env.DB,
-      `SELECT accountBalance FROM settings WHERE userId = ?`,
+      `SELECT accountBalance, unrealizedPnl FROM settings WHERE userId = ?`,
       [userId],
     );
     const initialBalance = settings?.accountBalance ?? 0;
+    const unrealizedPnl = settings?.unrealizedPnl ?? 0;
 
     // 2. Build trade filters
     const conditions: string[] = ['userId = ?', "status = 'CLOSED'"];
@@ -346,12 +347,12 @@ analytics.get('/', async (c) => {
     );
 
     // 4. Get Daily P&L for Calendar/Chart
-    const dailyRows = await queryMany<{ date: string; pnl: number; tradesCount: number }>(
+    const dailyRows = await queryMany<{ date: string; pnl: number; trades: number }>(
       c.env.DB,
       `SELECT
          strftime('%Y-%m-%d', datetime(exitDate, 'unixepoch')) as date,
          SUM(netPnl) as pnl,
-         COUNT(*) as tradesCount
+         COUNT(*) as trades
        FROM trades
        WHERE ${where}
        GROUP BY date
@@ -426,6 +427,7 @@ analytics.get('/', async (c) => {
 
     return c.json({
       initialBalance,
+      unrealizedPnl,
       totalTrades: stats?.totalCount ?? 0,
       winningTrades: stats?.winningTrades ?? 0,
       losingTrades: stats?.losingTrades ?? 0,

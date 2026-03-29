@@ -89,15 +89,15 @@ export default function PerformancePage() {
     })
   }, [selectedDate, trades])
 
-  const formatCurrency = (value: number | string | undefined) => {
+  const formatCurrency = (value: number | string | undefined | null) => {
     if (value === undefined || value === null) return '$0.00'
     const num = typeof value === 'string' ? parseFloat(value) : value
-    if (isNaN(num)) return '$0.00'
-    return `$${Math.abs(num).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    if (isNaN(num as number)) return '$0.00'
+    return `$${Math.abs(num as number).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
   }
 
-  const formatPercent = (value: number | undefined) => {
-    if (value === undefined) return '0.0%'
+  const formatPercent = (value: number | undefined | null) => {
+    if (value === undefined || value === null || isNaN(value)) return '0.0%'
     return `${value.toFixed(1)}%`
   }
 

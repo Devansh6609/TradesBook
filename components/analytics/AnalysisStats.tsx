@@ -29,17 +29,21 @@ export function AnalysisStats({ data }: AnalysisStatsProps) {
         </div>
     )
 
-    const formatCurrency = (val: string | number) => {
+    const formatCurrency = (val: string | number | undefined | null) => {
+        if (val === undefined || val === null) return '$0.00'
         const num = typeof val === 'string' ? parseFloat(val) : val
-        return `$${num.toFixed(2)}`
+        if (isNaN(num as number)) return '$0.00'
+        return `$${(num as number).toFixed(2)}`
     }
+
+    const rr = data?.riskRewardRatio ? (typeof data.riskRewardRatio === 'number' ? data.riskRewardRatio : parseFloat(data.riskRewardRatio)) : 0
 
     return (
         <div className="grid grid-cols-2 gap-4">
             {/* Best Trade */}
             <StatItem
                 label="Best Trade"
-                value={formatCurrency(data.bestTrade)}
+                value={formatCurrency(data?.bestTrade)}
                 icon={Trophy}
                 colorClass="text-blue-400"
             />
@@ -47,7 +51,7 @@ export function AnalysisStats({ data }: AnalysisStatsProps) {
             {/* Worst Trade */}
             <StatItem
                 label="Worst Trade"
-                value={formatCurrency(data.worstTrade)}
+                value={formatCurrency(data?.worstTrade)}
                 icon={TrendingDown}
                 colorClass="text-red-400"
             />
@@ -55,7 +59,7 @@ export function AnalysisStats({ data }: AnalysisStatsProps) {
             {/* Win Streak */}
             <StatItem
                 label="Win Streak"
-                value={`${data.winStreak} trades`}
+                value={`${data?.winStreak ?? 0} trades`}
                 icon={Flame}
                 colorClass="text-orange-400"
             />
@@ -63,7 +67,7 @@ export function AnalysisStats({ data }: AnalysisStatsProps) {
             {/* Loss Streak */}
             <StatItem
                 label="Loss Streak"
-                value={`${data.lossStreak} trades`}
+                value={`${data?.lossStreak ?? 0} trades`}
                 icon={AlertCircle}
                 colorClass="text-gray-400"
             />
@@ -71,15 +75,15 @@ export function AnalysisStats({ data }: AnalysisStatsProps) {
             {/* Risk Reward */}
             <StatItem
                 label="Risk:Reward"
-                value={`1:${(typeof data.riskRewardRatio === 'number' ? data.riskRewardRatio : parseFloat(data.riskRewardRatio)).toFixed(2)}`}
-                icon={Target} // Lucide icon might be 'Target' not 'target'
+                value={`1:${isNaN(rr) ? '0.00' : rr.toFixed(2)}`}
+                icon={Target}
                 colorClass="text-purple-400"
             />
 
             {/* Open Trades */}
             <StatItem
                 label="Open Trades"
-                value={data.openTrades}
+                value={data?.openTrades ?? 0}
                 icon={Activity}
                 colorClass="text-[var(--foreground)]"
             />

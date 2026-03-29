@@ -1,7 +1,8 @@
 // lib/apiClient.ts
 // Typed fetch wrapper — calls the Cloudflare Worker API
 // Reads NEXT_PUBLIC_API_URL from env (set in .env.local)
-import { MarketCondition, Emotion, TradeTag, Screenshot, Strategy, PartialClose, Tag, DailyPnLPoint } from '@/types';
+import { Trade, MarketCondition, Emotion, TradeTag, Screenshot, Strategy, PartialClose, Tag, DailyPnLPoint } from '@/types';
+export type { Trade };
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8787';
@@ -224,28 +225,7 @@ export type CreateTradeInput = Pick<Trade, 'symbol' | 'type' | 'entryPrice' | 'q
   tagIds?: string[];
   partialCloses?: { quantity: number; exitPrice: number; closedAt?: string; notes?: string | null }[];
 };
-export interface Trade {
-  id: string;
-  symbol: string;
-  type: 'BUY' | 'SELL';
-  entryPrice: string;
-  exitPrice?: string | null;
-  pnl?: number | null;
-  netPnl?: number | null;
-  entryDate: string;
-  exitDate?: string | null;
-  status: 'OPEN' | 'CLOSED';
-  quantity: number;
-  preTradeAnalysis?: string | null;
-  postTradeAnalysis?: string | null;
-  entryEmotion?: string | null;
-  lessonsLearned?: string | null;
-  rating?: number | null;
-  tags?: { id: string; name: string }[] | null;
-  executionChecklist?: string | null;
-  strategy?: { id: string; name: string } | null;
-  strategyId?: string | null;
-}
+// Trade interface imported from @/types
 export type TradeQueryParams = Partial<{
   page: number; limit: number; symbol: string; status: string;
   type: string; strategyId: string; dateFrom: string; dateTo: string;

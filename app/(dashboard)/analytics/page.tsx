@@ -84,8 +84,16 @@ export default function PerformancePage() {
     if (!selectedDate) return []
     const selectedDateStr = format(selectedDate, 'yyyy-MM-dd')
     return trades.filter((t: Trade) => {
-      const tradeDateStr = t.exitDate ? format(new Date(t.exitDate), 'yyyy-MM-dd') : null
-      return tradeDateStr === selectedDateStr
+      if (!t.exitDate) return false;
+      // Convert the ISO string from API to a simple YYYY-MM-DD in UTC to match the calendar's day data
+      try {
+        const date = new Date(t.exitDate);
+        const tradeDateStr = date.toISOString().split('T')[0];
+        return tradeDateStr === selectedDateStr;
+      } catch (e) {
+        console.error('Error parsing trade date:', t.exitDate, e);
+        return false;
+      }
     })
   }, [selectedDate, trades])
 

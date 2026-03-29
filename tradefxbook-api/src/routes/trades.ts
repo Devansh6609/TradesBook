@@ -100,6 +100,7 @@ const querySchema = z.object({
   exitDateTo:   emptyToUndefined,
   minPnl:       emptyToUndefined,
   maxPnl:       emptyToUndefined,
+  pnlFilter:    z.enum(['positive', 'negative']).optional(),
   sortBy:       emptyToUndefined.pipe(z.enum(['entryDate', 'exitDate', 'pnl', 'symbol', 'createdAt']).optional()).transform((v) => v ?? 'entryDate'),
   sortOrder:    emptyToUndefined.pipe(z.enum(['asc', 'desc']).optional()).transform((v) => v ?? 'desc'),
 });

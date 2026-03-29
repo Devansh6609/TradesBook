@@ -371,10 +371,10 @@ analytics.get('/', async (c) => {
       };
     });
 
-    // 6. Get Recent Trades
+    // 6. Get Recent Trades (increased limit for calendar detail view)
     const recentTradesRows = await queryMany<any>(
       c.env.DB,
-      `SELECT * FROM trades WHERE userId = ? ORDER BY exitDate DESC LIMIT 10`,
+      `SELECT * FROM trades WHERE userId = ? ORDER BY exitDate DESC LIMIT 500`,
       [userId],
     );
 

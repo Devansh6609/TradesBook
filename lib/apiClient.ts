@@ -229,7 +229,8 @@ export type CreateTradeInput = Pick<Trade, 'symbol' | 'type' | 'entryPrice' | 'q
 export type TradeQueryParams = Partial<{
   page: number; limit: number; symbol: string; status: string;
   type: string; strategyId: string; dateFrom: string; dateTo: string;
-  minPnl: number; maxPnl: number; sortBy: string; sortOrder: 'asc' | 'desc';
+  minPnl: number; maxPnl: number; pnlFilter: 'positive' | 'negative';
+  sortBy: string; sortOrder: 'asc' | 'desc';
 }>;
 export interface Settings { theme: string; currency: string; dateFormat: string; timezone: string; tradesPerPage: number; accountBalance: number | null; [key: string]: unknown; }
 export interface AnalyticsOverview { overview: Record<string, number>; monthly: { month: string; pnl: number; trades: number }[]; }

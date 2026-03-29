@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
+import { api, Trade } from '@/lib/apiClient'
 import {
     ChevronDown,
     Edit2,
@@ -21,28 +22,9 @@ import { Button } from '@/components/ui/Button'
 import Link from 'next/link'
 import { TradeChart } from '@/components/analytics/TradeChart'
 
-interface Trade {
-    id: string
-    symbol: string
-    type: 'BUY' | 'SELL'
-    entryPrice: string
-    exitPrice?: string
-    quantity: string
-    pnl?: string
-    netPnl?: string
-    status: 'OPEN' | 'CLOSED'
-    entryDate: string
-    exitDate?: string
-    preTradeAnalysis?: string
-    postTradeReview?: string
-    emotions?: string
-    lessonsLearned?: string
-    rating?: number
-}
-
 interface AnalyticsData {
-    avgWinner: string
-    avgLoser: string
+    avgWinner: number | string | null
+    avgLoser: number | string | null
     averageHoldTime?: number
 }
 
@@ -71,32 +53,24 @@ export default function TradeAnalysisPage() {
     const [sortBy, setSortBy] = useState('date')
     const [selectedTradeId, setSelectedTradeId] = useState<string | null>(null)
 
-    // Fetch trades
-    const { data: tradesData, isLoading } = useQuery<{ trades: Trade[] }>({
+    // Fetch trades using the correct API Client
+    const { data: tradesData, isLoading } = useQuery({
         queryKey: ['trades', 'analysis', activeTab, timeFilter],
-        queryFn: async () => {
-            const params = new URLSearchParams()
-            params.append('limit', '100')
-            if (activeTab === 'winners') params.append('pnlFilter', 'positive')
-            if (activeTab === 'losers') params.append('pnlFilter', 'negative')
-            const res = await fetch(`/api/trades?${params}`)
-            if (!res.ok) throw new Error('Failed to fetch trades')
-            return res.json()
-        },
+        queryFn: () => api.trades.list({
+            limit: 100,
+            pnlFilter: activeTab === 'winners' ? 'positive' : (activeTab === 'losers' ? 'negative' : undefined),
+            status: 'CLOSED'
+        }),
     })
 
     // Fetch analytics for comparison
-    const { data: analyticsData } = useQuery<AnalyticsData>({
+    const { data: analyticsData } = useQuery({
         queryKey: ['analytics', 'summary'],
-        queryFn: async () => {
-            const res = await fetch('/api/analytics')
-            if (!res.ok) throw new Error('Failed to fetch analytics')
-            return res.json()
-        },
+        queryFn: () => api.analytics.dashboard({ period: 'all' }),
     })
 
     const trades = tradesData?.trades || []
-    const closedTrades = trades.filter(t => t.status === 'CLOSED')
+    const closedTrades = trades.filter(t => (t.status || '').toUpperCase() === 'CLOSED')
 
     // Filter and sort trades
     const filteredTrades = useMemo(() => {
@@ -104,9 +78,17 @@ export default function TradeAnalysisPage() {
 
         // Sort
         if (sortBy === 'date') {
-            result.sort((a, b) => new Date(b.exitDate || b.entryDate).getTime() - new Date(a.exitDate || a.entryDate).getTime())
+            result.sort((a, b) => {
+                const dateA = new Date(a.exitDate || a.entryDate).getTime()
+                const dateB = new Date(b.exitDate || b.entryDate).getTime()
+                return dateB - dateA
+            })
         } else if (sortBy === 'pnl') {
-            result.sort((a, b) => parseFloat(b.netPnl || b.pnl || '0') - parseFloat(a.netPnl || a.pnl || '0'))
+            result.sort((a, b) => {
+                const pnlA = typeof a.netPnl === 'number' ? a.netPnl : parseFloat(String(a.netPnl || a.pnl || '0'))
+                const pnlB = typeof b.netPnl === 'number' ? b.netPnl : parseFloat(String(b.netPnl || b.pnl || '0'))
+                return pnlB - pnlA
+            })
         } else if (sortBy === 'symbol') {
             result.sort((a, b) => a.symbol.localeCompare(b.symbol))
         }
@@ -118,23 +100,23 @@ export default function TradeAnalysisPage() {
 
     const getTabCount = (tabId: string) => {
         if (tabId === 'all') return closedTrades.length
-        if (tabId === 'winners') return closedTrades.filter(t => parseFloat(t.netPnl || t.pnl || '0') > 0).length
-        if (tabId === 'losers') return closedTrades.filter(t => parseFloat(t.netPnl || t.pnl || '0') < 0).length
+        if (tabId === 'winners') return closedTrades.filter(t => (t.netPnl ?? t.pnl ?? 0) > 0).length
+        if (tabId === 'losers') return closedTrades.filter(t => (t.netPnl ?? t.pnl ?? 0) < 0).length
         return 0
     }
 
     const isWinner = (trade: Trade) => {
-        const pnl = parseFloat(trade.netPnl || trade.pnl || '0')
+        const pnl = trade.netPnl ?? trade.pnl ?? 0
         return pnl > 0
     }
 
     const formatPnl = (trade: Trade) => {
-        const pnl = parseFloat(trade.netPnl || trade.pnl || '0')
+        const pnl = trade.netPnl ?? trade.pnl ?? 0
         return `${pnl >= 0 ? '+' : ''}$${Math.abs(pnl).toFixed(2)}`
     }
 
-    const formatCurrency = (value: string | number | undefined) => {
-        if (value === undefined) return '$0.00'
+    const formatCurrency = (value: string | number | null | undefined) => {
+        if (value === null || value === undefined) return '$0.00'
         const num = typeof value === 'string' ? parseFloat(value) : value
         return `$${Math.abs(num).toFixed(2)}`
     }
@@ -150,7 +132,7 @@ export default function TradeAnalysisPage() {
         }
 
         // Profitability (30 pts max)
-        const pnl = parseFloat(trade.netPnl || trade.pnl || '0')
+        const pnl = trade.netPnl ?? trade.pnl ?? 0
         if (pnl > 0) {
             breakdown.profitability = 30
         } else if (pnl === 0) {
@@ -165,8 +147,8 @@ export default function TradeAnalysisPage() {
 
         // Journal (20 pts max) - 5 pts each for pre-analysis, post-review, emotions, lessons
         if (trade.preTradeAnalysis) breakdown.journal += 5
-        if (trade.postTradeReview) breakdown.journal += 5
-        if (trade.emotions) breakdown.journal += 5
+        if (trade.postTradeAnalysis) breakdown.journal += 5
+        if (trade.entryEmotion || trade.exitEmotion) breakdown.journal += 5
         if (trade.lessonsLearned) breakdown.journal += 5
         score += breakdown.journal
 
@@ -194,8 +176,8 @@ export default function TradeAnalysisPage() {
     // Calculate price move percentage
     const calculatePriceMove = (trade: Trade) => {
         if (!trade.exitPrice) return null
-        const entry = parseFloat(trade.entryPrice)
-        const exit = parseFloat(trade.exitPrice)
+        const entry = trade.entryPrice
+        const exit = trade.exitPrice
         const move = ((exit - entry) / entry) * 100
         const adjustedMove = trade.type === 'SELL' ? -move : move
         return adjustedMove
@@ -203,8 +185,8 @@ export default function TradeAnalysisPage() {
 
     // Compare with average
     const compareWithAverage = (trade: Trade) => {
-        const tradePnl = parseFloat(trade.netPnl || trade.pnl || '0')
-        const avgWinner = parseFloat(analyticsData?.avgWinner || '0')
+        const tradePnl = trade.netPnl ?? trade.pnl ?? 0
+        const avgWinner = typeof analyticsData?.avgWinner === 'string' ? parseFloat(analyticsData.avgWinner) : (analyticsData?.avgWinner ?? 0)
 
         let vsAvg = 0
         if (avgWinner > 0 && tradePnl > 0) {
@@ -298,7 +280,7 @@ export default function TradeAnalysisPage() {
                     ) : (
                         <div className="space-y-1">
                             {filteredTrades.map((trade) => {
-                                const hasJournal = trade.preTradeAnalysis || trade.postTradeReview
+                                const hasJournal = trade.preTradeAnalysis || trade.postTradeAnalysis
                                 return (
                                     <button
                                         key={trade.id}
@@ -314,7 +296,7 @@ export default function TradeAnalysisPage() {
                                             <div className="flex items-center gap-2">
                                                 <span className="text-lg">💰</span>
                                                 <span className="font-semibold text-[var(--foreground)]">{trade.symbol}</span>
-                                                {!hasJournal && (
+                                                {!(trade.preTradeAnalysis || trade.postTradeAnalysis) && (
                                                     <span className="px-1.5 py-0.5 text-[10px] font-medium bg-amber-500/20 text-amber-400 rounded">
                                                         NEW
                                                     </span>
@@ -431,15 +413,15 @@ export default function TradeAnalysisPage() {
                                     </div>
                                     <span className={cn(
                                         "px-2 py-0.5 text-xs font-medium rounded",
-                                        (selectedTrade.preTradeAnalysis || selectedTrade.postTradeReview)
+                                        (selectedTrade.preTradeAnalysis || selectedTrade.postTradeAnalysis)
                                             ? "bg-green-500/20 text-green-400"
                                             : "bg-amber-500/20 text-amber-400"
                                     )}>
-                                        {(selectedTrade.preTradeAnalysis || selectedTrade.postTradeReview) ? 'Journaled' : 'Not Journaled'}
+                                        {(selectedTrade.preTradeAnalysis || selectedTrade.postTradeAnalysis) ? 'Journaled' : 'Not Journaled'}
                                     </span>
                                 </div>
-
-                                {(selectedTrade.preTradeAnalysis || selectedTrade.postTradeReview) ? (
+                                
+                                {(selectedTrade.preTradeAnalysis || selectedTrade.postTradeAnalysis) ? (
                                     <div className="space-y-3">
                                         {selectedTrade.preTradeAnalysis && (
                                             <div>
@@ -447,10 +429,10 @@ export default function TradeAnalysisPage() {
                                                 <p className="text-sm text-gray-300">{selectedTrade.preTradeAnalysis}</p>
                                             </div>
                                         )}
-                                        {selectedTrade.postTradeReview && (
+                                        {selectedTrade.postTradeAnalysis && (
                                             <div>
                                                 <p className="text-xs text-gray-500 mb-1">Post-Trade Review</p>
-                                                <p className="text-sm text-gray-300">{selectedTrade.postTradeReview}</p>
+                                                <p className="text-sm text-gray-300">{selectedTrade.postTradeAnalysis}</p>
                                             </div>
                                         )}
                                     </div>

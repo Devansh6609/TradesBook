@@ -237,6 +237,7 @@ export interface StrategyPerformanceResponse { strategies: { strategyId: string 
 
 export interface AnalyticsData {
   initialBalance: number;
+  unrealizedPnl: number;
   totalTrades: number;
   winningTrades: number;
   losingTrades: number;
@@ -256,7 +257,7 @@ export interface AnalyticsData {
   riskRewardRatio: string | number;
   openTrades: number;
   equityCurve: { date: string; equity: number; pnl: number; time: string; value: number; drawdown: number }[];
-  dailyPnL: { date: string; pnl: number; tradesCount: number }[];
+  dailyPnL: DailyPnLPoint[];
   trades: Trade[];
   monthlyStats: { month: string; profit: number; trades: number }[];
   dayOfWeekPerformance: { day: string; pnl: number; trades: number; winRate: number }[];

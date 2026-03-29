@@ -241,7 +241,7 @@ export default function PerformancePage() {
                 >
                   <span className="text-[10px] font-mono mb-1">{format(day, 'd')}</span>
                   {data && <span className={cn("text-[8px] font-bold font-mono", pnlValue > 0 ? "text-blue-400" : "text-red-400")}>${Math.abs(pnlValue).toFixed(0)}</span>}
-                  {data && <span className="text-[8px] opacity-70">{data.tradesCount} trades</span>}
+                  {data && <span className="text-[8px] opacity-70">{data.trades} trades</span>}
                 </button>
               )
             })}

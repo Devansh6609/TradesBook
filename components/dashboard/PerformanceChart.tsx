@@ -16,12 +16,7 @@ const PERIODS = [
     { label: 'All', value: 'all' },
 ]
 
-interface DailyPnLPoint {
-    date: string
-    pnl: string
-    cumulativePnl: string
-    trades: number
-}
+import { DailyPnLPoint } from '@/types'
 
 export function PerformanceChart() {
     const [period, setPeriod] = useState('30d')

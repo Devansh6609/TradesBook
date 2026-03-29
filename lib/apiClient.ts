@@ -243,6 +243,8 @@ export interface Trade {
   rating?: number | null;
   tags?: { id: string; name: string }[] | null;
   executionChecklist?: string | null;
+  strategy?: { id: string; name: string } | null;
+  strategyId?: string | null;
 }
 export type TradeQueryParams = Partial<{
   page: number; limit: number; symbol: string; status: string;

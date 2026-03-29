@@ -75,15 +75,10 @@ export default function RegisterPage() {
 
   return (
     <Card className="w-full">
-      <CardHeader className="space-y-4 pt-10 text-center">
-        <div className="flex justify-center mb-4">
-          <div className="relative w-12 h-12 text-center">
-            <img src="/logo.png" alt="TradesBook" className="w-full h-full object-contain mx-auto" />
-          </div>
-        </div>
-        <CardTitle className="text-2xl font-bold">Create an account</CardTitle>
-        <CardDescription>
-          Join TradesBook and start tracking your success
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl font-bold text-center">Create an account</CardTitle>
+        <CardDescription className="text-center">
+          Enter your details to get started
         </CardDescription>
       </CardHeader>
       <CardContent>

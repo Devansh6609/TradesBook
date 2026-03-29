@@ -3,6 +3,8 @@
 // Auth check is now client-side via cookie read (middleware handles the server side)
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
+import Link from 'next/link'
 
 export default function AuthLayout({
   children,
@@ -20,14 +22,22 @@ export default function AuthLayout({
   }, [router])
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center p-4">
-      <div className="mb-8 flex flex-col items-center gap-2">
-        <div className="relative w-16 h-16">
-          <img src="/logo.png" alt="TradesBook" className="w-full h-full object-contain" />
-        </div>
-        <h1 className="text-2xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-blue-600">
-          TradesBook
-        </h1>
+    <div className="min-h-screen bg-[#020617] flex flex-col items-center justify-center p-4">
+      <div className="mb-8 flex flex-col items-center gap-4">
+        <Link href="/" className="flex flex-col items-center gap-2">
+          <div className="relative w-16 h-16">
+            <Image
+              src="/logo.png"
+              alt="TradesBook Logo"
+              fill
+              className="object-contain"
+              priority
+            />
+          </div>
+          <h1 className="text-3xl font-black tracking-tight text-white">
+            TradesBook
+          </h1>
+        </Link>
       </div>
       <div className="w-full max-w-md">
         {children}

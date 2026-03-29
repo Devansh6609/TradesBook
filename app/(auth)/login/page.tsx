@@ -67,15 +67,10 @@ export default function LoginPage() {
 
   return (
     <Card className="w-full">
-      <CardHeader className="space-y-4 pt-10 text-center">
-        <div className="flex justify-center mb-4">
-          <div className="relative w-12 h-12">
-            <img src="/logo.png" alt="TradesBook" className="w-full h-full object-contain" />
-          </div>
-        </div>
-        <CardTitle className="text-2xl font-bold">Welcome back</CardTitle>
-        <CardDescription>
-          Enter your credentials to access your TradesBook account
+      <CardHeader className="space-y-1">
+        <CardTitle className="text-2xl font-bold text-center">Welcome back</CardTitle>
+        <CardDescription className="text-center">
+          Enter your credentials to access your account
         </CardDescription>
       </CardHeader>
       <CardContent>

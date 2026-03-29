@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -200,10 +201,19 @@ export default function Sidebar() {
             href="/dashboard"
             className="flex items-center gap-2 font-bold text-lg text-[var(--foreground)]"
           >
-            <div className="relative w-8 h-8">
-              <img src="/logo.png" alt="TB" className="w-full h-full object-contain" />
+            <div className="relative w-10 h-10">
+              <Image
+                src="/logo.png"
+                alt="TradesBook Logo"
+                fill
+                className="object-contain"
+                priority
+              />
             </div>
-            <span>TradesBook</span>
+            <span className="ml-1">TradesBook</span>
+            <span className="ml-2 px-1.5 py-0.5 text-[10px] font-semibold rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
+              PRO
+            </span>
           </Link>
         </div>
 

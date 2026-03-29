@@ -54,7 +54,7 @@ app.use('*', async (c, next) => {
 });
 
 // ─── Health check ────────────────────────────────────────────────────────────
-app.get('/', (c) => c.json({ status: 'ok', service: 'TradesBook API', version: '2.0.0' }));
+app.get('/', (c) => c.json({ status: 'ok', service: 'TradeFxBook API', version: '2.0.0' }));
 app.get('/health', (c) => c.json({ status: 'ok' }));
 
 // ─── Route groups ────────────────────────────────────────────────────────────

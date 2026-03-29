@@ -51,3 +51,27 @@ Thumbs.db
 
 .vercel
 .env*.local
+
+# diagnostic & temporary
+*.log
+*.txt
+*.sql
+*.zip
+*.resolved
+d1_list.json
+db_tables.json
+result.txt
+nul
+audit-trades.js
+fix-trades.js
+test-db.js
+test-ff-access.js
+test_payload.json
+verify-api.js
+migrate.js
+
+# Workers/Cloudflare
+.wrangler/
+dist/
+**/dist/
+**/.wrangler/

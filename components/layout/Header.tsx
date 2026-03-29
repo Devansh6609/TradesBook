@@ -49,24 +49,16 @@ export default function Header({ onMenuClick }: HeaderProps) {
       <div className="flex items-center justify-between h-full px-4 lg:px-6">
         {/* Left side - Page title */}
         <div className="flex items-center gap-4">
-          <div className="flex items-center gap-3">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onMenuClick}
-              className="lg:hidden p-2"
-              title="Open menu"
-            >
-              <Menu size={20} />
-            </Button>
-            <div className="flex items-center gap-2 lg:hidden">
-              <div className="relative w-8 h-8">
-                <img src="/logo.png" alt="TB" className="w-full h-full object-contain" />
-              </div>
-              <span className="font-bold text-sm hidden sm:block">TradesBook</span>
-            </div>
-          </div>
-          <div className="hidden lg:block">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onMenuClick}
+            className="lg:hidden p-2"
+            title="Open menu"
+          >
+            <Menu size={20} />
+          </Button>
+          <div>
             <h1 className="text-xl font-semibold text-[var(--foreground)]">{pageInfo.title}</h1>
             <p className="text-xs text-[var(--foreground-muted)]">{currentDate}</p>
           </div>

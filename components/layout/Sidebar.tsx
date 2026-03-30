@@ -121,24 +121,24 @@ export default function Sidebar() {
           <button
             onClick={() => toggleExpanded(item.name)}
             className={cn(
-              'w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+              'w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-300',
               active
-                ? 'bg-blue-600/10 text-blue-400'
-                : 'text-[var(--foreground-muted)] hover:text-[var(--foreground)] hover:bg-[var(--foreground)]/5'
+                ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]'
+                : 'text-foreground-muted hover:text-foreground hover:bg-white/[0.03] border border-transparent'
             )}
           >
-            <Icon size={20} />
+            <Icon size={16} className={cn("transition-colors", active ? "text-blue-400" : "text-foreground-muted")} />
             <span>{item.name}</span>
             <ChevronDown
-              size={16}
+              size={14}
               className={cn(
-                'ml-auto transition-transform',
+                'ml-auto transition-transform duration-500',
                 isExpanded && 'rotate-180'
               )}
             />
           </button>
           {isExpanded && (
-            <div className="mt-1 ml-4 pl-4 border-l border-[var(--border)] space-y-1">
+            <div className="mt-1.5 ml-3 pl-4 border-l border-white/5 space-y-1">
               {item.children?.map(child => renderNavItem(child, depth + 1))}
             </div>
           )}
@@ -151,13 +151,13 @@ export default function Sidebar() {
         key={item.name}
         href={item.href || '#'}
         className={cn(
-          'flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-all',
+          'flex items-center gap-3 px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-300 group',
           active
-            ? 'bg-blue-600/10 text-blue-400'
-            : 'text-[var(--foreground-muted)] hover:text-[var(--foreground)] hover:bg-[var(--foreground)]/5'
+            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]'
+            : 'text-foreground-muted hover:text-foreground hover:bg-white/[0.03] border border-transparent'
         )}
       >
-        <Icon size={20} />
+        <Icon size={16} className={cn("transition-colors group-hover:scale-110", active ? "text-blue-400" : "text-foreground-muted")} />
         <span>{item.name}</span>
         {renderBadge(item.badge)}
       </Link>
@@ -189,62 +189,62 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed left-0 top-0 z-40 h-screen w-64 bg-[var(--background-secondary)] border-r border-[var(--border)] transition-transform duration-300 flex flex-col',
+          'fixed left-0 top-0 z-40 h-screen w-64 bg-background-secondary/60 backdrop-blur-xl border-r border-white/5 transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] flex flex-col shadow-[20px_0_40px_rgba(0,0,0,0.5)]',
           isMobileMenuOpen
             ? 'translate-x-0'
             : '-translate-x-full lg:translate-x-0'
         )}
       >
         {/* Logo */}
-        <div className="flex items-center gap-2 h-16 px-4 border-b border-[var(--border)]">
+        <div className="flex items-center gap-3 h-16 px-6 border-b border-white/5 bg-white/[0.02]">
           <Link
             href="/dashboard"
-            className="flex items-center gap-2 font-bold text-lg text-[var(--foreground)]"
+            className="flex items-center gap-3 transition-opacity hover:opacity-80"
           >
-            <div className="relative w-10 h-10">
+            <div className="relative w-9 h-9 p-1.5 bg-blue-500/10 rounded-xl border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
               <Image
                 src="/logo.png"
                 alt="TradesBook Logo"
                 fill
-                className="object-contain"
+                className="object-contain p-1.5"
                 priority
               />
             </div>
-            <span className="ml-1">TradesBook</span>
-            <span className="ml-2 px-1.5 py-0.5 text-[10px] font-semibold rounded bg-blue-500/20 text-blue-400 border border-blue-500/30">
-              PRO
-            </span>
+            <div className="flex flex-col">
+                <span className="font-black text-sm tracking-tight text-foreground leading-none">TRADESBOOK</span>
+                <span className="text-[10px] font-bold text-blue-400/80 tracking-[0.2em] leading-tight">TERMINAL</span>
+            </div>
           </Link>
         </div>
 
-        {/* User Profile */}
-        <div className="px-3 py-4 border-b border-[var(--border)]">
-          <div className="flex items-center gap-3 p-2 rounded-lg hover:bg-[var(--foreground)]/5 cursor-pointer transition-colors">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-amber-500 to-orange-600 flex items-center justify-center flex-shrink-0">
+        {/* User Profile - Premium Compact */}
+        <div className="px-4 py-5 border-b border-white/5">
+          <div className="group flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] hover:border-white/10 transition-all duration-300 cursor-pointer overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Sparkles size={8} className="text-amber-400 animate-pulse" />
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform">
               {sessionUser?.image ? (
                 <img
                   src={sessionUser.image}
                   alt={sessionUser.name || 'User'}
-                  className="w-10 h-10 rounded-full"
+                  className="w-10 h-10 rounded-xl"
                 />
               ) : (
-                <User size={20} className="text-white" />
+                <User size={18} className="text-white" />
               )}
             </div>
             <div className="flex-1 min-w-0">
-              <div className="flex items-center gap-2">
-                <p className="text-sm font-medium text-[var(--foreground)] truncate">
-                  {sessionUser?.name || 'User'}
+               <p className="text-xs font-black text-foreground truncate uppercase tracking-wider">
+                  {sessionUser?.name || 'TERMINAL USER'}
                 </p>
-                <span className="px-1.5 py-0.5 text-[10px] font-semibold rounded bg-green-500/20 text-green-400 border border-green-500/30">
-                  FREE
-                </span>
-              </div>
-              <p className="text-xs text-[var(--foreground-muted)] truncate">
-                {sessionUser?.email}
-              </p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]" />
+                    <span className="text-[9px] font-bold text-foreground-muted tracking-widest uppercase">
+                        Active Session
+                    </span>
+                </div>
             </div>
-            <ChevronDown size={16} className="text-[var(--foreground-muted)]" />
           </div>
         </div>
 
@@ -271,19 +271,19 @@ export default function Sidebar() {
         </nav>
 
         {/* Support Section */}
-        <div className="border-t border-[var(--border)]">
-          <div className="px-4 pt-4 pb-2">
-            <span className="text-xs font-semibold text-[var(--foreground-muted)] uppercase tracking-wider">Support</span>
+        <div className="border-t border-white/5 bg-white/[0.01]">
+          <div className="px-6 pt-4 pb-2 text-[10px] font-black text-foreground-muted uppercase tracking-[0.2em]">
+            Support & Config
           </div>
           <div className="px-3 pb-4 space-y-1">
             {bottomNavigation.map((item) => renderNavItem(item))}
 
             <button
               onClick={() => signOut()}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[var(--foreground-muted)] hover:text-[var(--foreground)] hover:bg-[var(--foreground)]/5 transition-all"
+              className="w-full flex items-center gap-3 px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider text-loss-light/70 hover:text-loss-light hover:bg-loss/10 border border-transparent hover:border-loss/20 transition-all duration-300 group"
             >
-              <LogOut size={20} />
-              <span>Sign out</span>
+              <LogOut size={16} className="transition-transform group-hover:-translate-x-0.5" />
+              <span>Terminate Session</span>
             </button>
           </div>
         </div>

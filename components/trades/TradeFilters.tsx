@@ -26,8 +26,6 @@ interface TradeFiltersProps {
 }
 
 export function TradeFilters({ filters, onChange, strategies, className }: TradeFiltersProps) {
-  const [isExpanded, setIsExpanded] = useState(false)
-
   const hasActiveFilters =
     filters.symbol ||
     filters.type ||
@@ -60,156 +58,127 @@ export function TradeFilters({ filters, onChange, strategies, className }: Trade
   }
 
   const strategyOptions = [
-    { value: '', label: 'All Strategies' },
-    ...strategies.map((s) => ({ value: s.id, label: s.name })),
+    { value: '', label: 'ALL_STRATEGIES' },
+    ...strategies.map((s) => ({ value: s.id, label: s.name.toUpperCase() })),
   ]
 
   const statusOpts = [
-    { value: '', label: 'All Statuses' },
-    ...statusOptions.map((s) => ({ value: s.value, label: s.label })),
+    { value: '', label: 'ALL_STATUSES' },
+    ...statusOptions.map((s) => ({ value: s.value, label: s.label.toUpperCase() })),
   ]
 
   const typeOpts = [
-    { value: '', label: 'All Types' },
-    ...typeOptions.map((t) => ({ value: t.value, label: t.label })),
+    { value: '', label: 'ALL_TYPES' },
+    ...typeOptions.map((t) => ({ value: t.value, label: t.label.toUpperCase() })),
   ]
 
   return (
-    <div className={cn('space-y-4', className)}>
-      {/* Quick Filters */}
-      <div className="flex flex-wrap items-center gap-2">
-        <Button
-          variant="secondary"
-          size="sm"
-          onClick={() => setIsExpanded(!isExpanded)}
-          className={cn('gap-2', isExpanded && 'bg-background-tertiary')}
-        >
-          <Filter size={16} />
-          Filters
-          {hasActiveFilters && (
-            <span className="ml-1 px-1.5 py-0.5 text-xs bg-blue-500 rounded-full text-white">
-              Active
-            </span>
-          )}
-        </Button>
-
-        {hasActiveFilters && (
-          <Button variant="ghost" size="sm" onClick={handleReset} className="gap-2 text-foreground-muted">
-            <X size={16} />
-            Reset
-          </Button>
-        )}
-
-        {/* Active filter badges */}
-        {filters.symbol && (
-          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-background-tertiary border border-border rounded-md">
-            Symbol: {filters.symbol}
-            <button onClick={() => onChange({ ...filters, symbol: '' })}>
-              <X size={12} />
-            </button>
-          </span>
-        )}
-        {filters.type && (
-          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-background-tertiary border border-border rounded-md">
-            Type: {filters.type}
-            <button onClick={() => onChange({ ...filters, type: '' })}>
-              <X size={12} />
-            </button>
-          </span>
-        )}
-        {filters.status && (
-          <span className="inline-flex items-center gap-1 px-2 py-1 text-xs bg-background-tertiary border border-border rounded-md">
-            Status: {filters.status}
-            <button onClick={() => onChange({ ...filters, status: '' })}>
-              <X size={12} />
-            </button>
-          </span>
-        )}
-      </div>
-
-      {/* Expanded Filters */}
-      {isExpanded && (
-        <div className="p-4 bg-background-secondary border border-border rounded-lg space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {/* Symbol */}
+    <div className={cn('space-y-6', className)}>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        {/* Symbol Input */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-foreground-disabled uppercase tracking-widest pl-1">Vector_ID</label>
+          <div className="relative group">
+            <div className="absolute inset-0 bg-blue-500/5 blur-md opacity-0 group-hover:opacity-100 transition-opacity" />
             <Input
-              label="Symbol"
-              placeholder="e.g., EURUSD"
+              placeholder="EURUSD, BTCUSD..."
               value={filters.symbol}
               onChange={(e) => onChange({ ...filters, symbol: e.target.value.toUpperCase() })}
+              className="bg-black/40 border-white/10 text-white placeholder:text-foreground-disabled/30 text-xs font-bold uppercase tracking-wider h-11 focus:border-blue-500/50 transition-all"
             />
-
-            {/* Type */}
-            <Select
-              label="Direction"
-              placeholder="All Types"
-              value={filters.type}
-              options={typeOpts}
-              onChange={(value) => onChange({ ...filters, type: value as string })}
-            />
-
-            {/* Status */}
-            <Select
-              label="Status"
-              placeholder="All Statuses"
-              value={filters.status}
-              options={statusOpts}
-              onChange={(value) => onChange({ ...filters, status: value as string })}
-            />
-
-            {/* Strategy */}
-            <Select
-              label="Strategy"
-              placeholder="All Strategies"
-              value={filters.strategyId}
-              options={strategyOptions}
-              onChange={(value) => onChange({ ...filters, strategyId: value as string })}
-              searchable
-            />
-
-            {/* Date Range */}
-            <div className="md:col-span-2">
-              <DateRangePicker
-                label="Date Range"
-                startDate={filters.dateFrom}
-                endDate={filters.dateTo}
-                onChange={handleDateChange}
-              />
-            </div>
-
-            {/* P&L Range */}
-            <div className="space-y-2">
-              <label className="text-sm font-medium text-foreground">P&L Range</label>
-              <div className="flex items-center gap-2">
-                <Input
-                  type="number"
-                  placeholder="Min P&L"
-                  value={filters.minPnl}
-                  onChange={(e) => onChange({ ...filters, minPnl: e.target.value })}
-                  className="flex-1"
-                />
-                <span className="text-foreground-muted">to</span>
-                <Input
-                  type="number"
-                  placeholder="Max P&L"
-                  value={filters.maxPnl}
-                  onChange={(e) => onChange({ ...filters, maxPnl: e.target.value })}
-                  className="flex-1"
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4 border-t border-border">
-            <Button variant="secondary" size="sm" onClick={handleReset}>
-              Reset All
-            </Button>
-            <Button size="sm" onClick={() => setIsExpanded(false)}>
-              Apply Filters
-            </Button>
           </div>
         </div>
-      )}
+
+        {/* Direction Select */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-foreground-disabled uppercase tracking-widest pl-1">Vector_Dir</label>
+          <Select
+            value={filters.type}
+            options={typeOpts}
+            onChange={(value) => onChange({ ...filters, type: value as string })}
+            className="bg-black/40 border-white/10 text-white text-xs font-bold h-11"
+          />
+        </div>
+
+        {/* Status Select */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-foreground-disabled uppercase tracking-widest pl-1">Process_State</label>
+          <Select
+            value={filters.status}
+            options={statusOpts}
+            onChange={(value) => onChange({ ...filters, status: value as string })}
+            className="bg-black/40 border-white/10 text-white text-xs font-bold h-11"
+          />
+        </div>
+
+        {/* Strategy Select */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-foreground-disabled uppercase tracking-widest pl-1">Logic_Protocol</label>
+          <Select
+            value={filters.strategyId}
+            options={strategyOptions}
+            onChange={(value) => onChange({ ...filters, strategyId: value as string })}
+            searchable
+            className="bg-black/40 border-white/10 text-white text-xs font-bold h-11"
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 items-end">
+        {/* Date Range */}
+        <div className="space-y-2">
+          <label className="text-[10px] font-black text-foreground-disabled uppercase tracking-widest pl-1">Temporal_Window</label>
+          <div className="bg-black/40 border border-white/10 rounded-xl px-4 py-1.5 min-h-[44px] flex items-center">
+            <DateRangePicker
+              startDate={filters.dateFrom}
+              endDate={filters.dateTo}
+              onChange={handleDateChange}
+              className="w-full bg-transparent border-0 text-xs font-bold text-white p-0"
+            />
+          </div>
+        </div>
+
+        {/* P&L Range & Actions */}
+        <div className="flex flex-col sm:flex-row items-end gap-6">
+          <div className="flex-1 space-y-2 w-full">
+            <label className="text-[10px] font-black text-foreground-disabled uppercase tracking-widest pl-1">PnL_Threshold</label>
+            <div className="flex items-center gap-3">
+              <Input
+                type="number"
+                placeholder="MIN"
+                value={filters.minPnl}
+                onChange={(e) => onChange({ ...filters, minPnl: e.target.value })}
+                className="bg-black/40 border-white/10 text-white text-xs font-bold h-11 text-center"
+              />
+              <div className="w-4 h-px bg-white/10" />
+              <Input
+                type="number"
+                placeholder="MAX"
+                value={filters.maxPnl}
+                onChange={(e) => onChange({ ...filters, maxPnl: e.target.value })}
+                className="bg-black/40 border-white/10 text-white text-xs font-bold h-11 text-center"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            {hasActiveFilters && (
+              <button
+                onClick={handleReset}
+                className="h-11 px-6 rounded-xl border border-white/5 text-[10px] font-black text-foreground-disabled hover:text-white hover:bg-white/5 uppercase tracking-widest transition-all active:scale-95"
+              >
+                Clear_Matrix
+              </button>
+            )}
+            <button
+               onClick={() => onChange({ ...filters })}
+               className="h-11 px-8 rounded-xl bg-blue-600 text-[10px] font-black text-white hover:bg-blue-500 uppercase tracking-widest shadow-lg shadow-blue-500/20 transition-all active:scale-95"
+            >
+              Update_Buffer
+            </button>
+          </div>
+        </div>
+      </div>
     </div>
   )
 }

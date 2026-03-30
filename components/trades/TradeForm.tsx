@@ -6,7 +6,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Trade } from '@/types'
 import { calculateTradePnL, calculatePips } from '@/lib/trades'
 import { z } from 'zod'
-import { Plus, X, TrendingUp, TrendingDown, Calendar } from 'lucide-react'
+import { Plus, X, TrendingUp, TrendingDown, Calendar, Info, CheckCircle2, Target, DollarSign } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { format } from 'date-fns'
 import { AssetIcon } from "@/components/market/AssetIcon"
@@ -48,28 +48,17 @@ export interface TradeFormData {
   notes?: string
 }
 
-// Popular forex & trading symbols for autocomplete
 const SYMBOL_SUGGESTIONS = [
   { symbol: 'XAUUSD', description: 'Gold vs US Dollar' },
-  { symbol: 'XAUUSD', description: 'Gold vs US Dollar, Spot CFD' },
-  { symbol: 'XAUUSD', description: 'Gold vs US Dollar / Spot' },
-  { symbol: 'XAUUSD', description: 'Gold US Dollar' },
-  { symbol: 'XAUAUD', description: 'Gold vs Australian Dollar / Spot' },
   { symbol: 'EURUSD', description: 'Euro vs US Dollar' },
   { symbol: 'GBPUSD', description: 'British Pound vs US Dollar' },
   { symbol: 'USDJPY', description: 'US Dollar vs Japanese Yen' },
   { symbol: 'USDCHF', description: 'US Dollar vs Swiss Franc' },
   { symbol: 'AUDUSD', description: 'Australian Dollar vs US Dollar' },
-  { symbol: 'NZDUSD', description: 'New Zealand Dollar vs US Dollar' },
-  { symbol: 'USDCAD', description: 'US Dollar vs Canadian Dollar' },
-  { symbol: 'EURJPY', description: 'Euro vs Japanese Yen' },
-  { symbol: 'GBPJPY', description: 'British Pound vs Japanese Yen' },
-  { symbol: 'EURGBP', description: 'Euro vs British Pound' },
   { symbol: 'BTCUSD', description: 'Bitcoin vs US Dollar' },
   { symbol: 'ETHUSD', description: 'Ethereum vs US Dollar' },
-  { symbol: 'US30', description: 'Dow Jones Industrial Average' },
-  { symbol: 'NAS100', description: 'NASDAQ 100 Index' },
-  { symbol: 'SPX500', description: 'S&P 500 Index' },
+  { symbol: 'US30', description: 'Dow Jones Index' },
+  { symbol: 'NAS100', description: 'Nasdaq 100 Index' },
 ]
 
 export function TradeForm({
@@ -85,12 +74,7 @@ export function TradeForm({
   const [errors, setErrors] = useState<Record<string, string>>({})
   const [showSymbolDropdown, setShowSymbolDropdown] = useState(false)
   const [calculatedPnL, setCalculatedPnL] = useState<{ pnl: number; netPnL: number; pips: number } | null>(null)
-
-  // Partial close state
-  const [partialCloseQty, setPartialCloseQty] = useState<number>(0)
-  const [partialClosePrice, setPartialClosePrice] = useState<number>(0)
-  const [pendingPartialCloses, setPendingPartialCloses] = useState<{ quantity: number; exitPrice: number; pnl: number }[]>([])
-
+  
   const [formData, setFormData] = useState<TradeFormData>({
     symbol: '',
     type: 'BUY',
@@ -118,16 +102,14 @@ export function TradeForm({
     notes: '',
   })
 
-  // Filtered symbol suggestions based on input
   const filteredSymbols = useMemo(() => {
     if (!formData.symbol) return []
     const search = formData.symbol.toUpperCase()
     return SYMBOL_SUGGESTIONS.filter(s =>
       s.symbol.includes(search) || s.description.toLowerCase().includes(search.toLowerCase())
-    ).slice(0, 8)
+    ).slice(0, 5)
   }, [formData.symbol])
 
-  // Populate form when editing
   useEffect(() => {
     if (trade) {
       setFormData({
@@ -135,12 +117,8 @@ export function TradeForm({
         type: trade.type,
         entryPrice: parseFloat(trade.entryPrice?.toString() || '0'),
         exitPrice: trade.exitPrice ? parseFloat(trade.exitPrice.toString()) : undefined,
-        entryDate: trade.entryDate
-          ? new Date(trade.entryDate).toISOString().slice(0, 16)
-          : new Date().toISOString().slice(0, 16),
-        exitDate: trade.exitDate
-          ? new Date(trade.exitDate).toISOString().slice(0, 16)
-          : undefined,
+        entryDate: trade.entryDate ? new Date(trade.entryDate).toISOString().slice(0, 16) : new Date().toISOString().slice(0, 16),
+        exitDate: trade.exitDate ? new Date(trade.exitDate).toISOString().slice(0, 16) : undefined,
         quantity: parseFloat(trade.quantity?.toString() || '0'),
         stopLoss: trade.stopLoss ? parseFloat(trade.stopLoss.toString()) : undefined,
         takeProfit: trade.takeProfit ? parseFloat(trade.takeProfit.toString()) : undefined,
@@ -161,7 +139,6 @@ export function TradeForm({
         notes: trade.notes || '',
       })
     } else {
-      // Reset form for new trade
       setFormData({
         symbol: '',
         type: 'BUY',
@@ -189,164 +166,68 @@ export function TradeForm({
         notes: '',
       })
     }
-    setErrors({})
-    setCalculatedPnL(null)
-    setPartialCloseQty(0)
-    setPartialClosePrice(0)
-    setPendingPartialCloses([])
   }, [trade, isOpen])
 
-  // Calculate P&L and pips when relevant fields change
   useEffect(() => {
     if (formData.exitPrice && formData.entryPrice && formData.quantity && formData.symbol) {
-      // Sum up all partial close quantities and P&Ls
-      const existingPartialCloses = (trade as any)?.partialCloses || []
-      const allPartialCloses = [...existingPartialCloses, ...pendingPartialCloses]
-      const partialCloseQtySum = allPartialCloses.reduce((sum: number, pc: any) => sum + Number(pc.quantity), 0)
-      const partialClosePnLSum = allPartialCloses.reduce((sum: number, pc: any) => sum + Number(pc.pnl || 0), 0)
-
-      // Remaining quantity after partial closes
-      const remainingQty = Math.max(formData.quantity - partialCloseQtySum, 0)
-
-      // P&L on the remaining position at exit price
-      const remainingResult = calculateTradePnL({
+      const result = calculateTradePnL({
         type: formData.type,
         entryPrice: formData.entryPrice,
         exitPrice: formData.exitPrice,
-        quantity: remainingQty,
+        quantity: formData.quantity,
         symbol: formData.symbol,
         commission: formData.commission,
         swap: formData.swap,
         fees: formData.fees,
-        stopLoss: formData.stopLoss,
       })
-
-      // Total P&L = partial close P&Ls + remaining position P&L
-      const totalPnl = partialClosePnLSum + remainingResult.pnl
-      const totalNetPnl = partialClosePnLSum + remainingResult.netPnL
-
-      // Calculate pips (based on entry→exit, independent of qty)
       const pips = calculatePips(formData.symbol, formData.entryPrice, formData.exitPrice, formData.type)
-
-      setCalculatedPnL({ pnl: totalPnl, netPnL: totalNetPnl, pips })
+      setCalculatedPnL({ pnl: result.pnl, netPnL: result.netPnL, pips })
     } else {
       setCalculatedPnL(null)
     }
-  }, [formData, pendingPartialCloses, trade])
+  }, [formData])
 
   const validate = (): boolean => {
     const newErrors: Record<string, string> = {}
-
-    if (!formData.symbol.trim()) {
-      newErrors.symbol = 'Symbol is required'
-    }
-    if (!formData.entryPrice || formData.entryPrice <= 0) {
-      newErrors.entryPrice = 'Entry price is required'
-    }
-    if (!formData.quantity || formData.quantity <= 0) {
-      newErrors.quantity = 'Quantity is required'
-    }
-
+    if (!formData.symbol.trim()) newErrors.symbol = 'Required'
+    if (!formData.entryPrice || formData.entryPrice <= 0) newErrors.entryPrice = 'Required'
+    if (!formData.quantity || formData.quantity <= 0) newErrors.quantity = 'Required'
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
-  }
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault()
-    if (validate()) {
-      // Auto-set status based on exit price
-      const finalData = { ...formData }
-      if (finalData.exitPrice && finalData.exitPrice > 0) {
-        finalData.status = 'CLOSED'
-      }
-
-      // Convert datetime-local format to proper ISO string
-      // datetime-local gives "2026-02-08T10:41", new Date() parses it correctly
-      const entryDateISO = new Date(finalData.entryDate).toISOString()
-      const exitDateISO = finalData.exitDate
-        ? new Date(finalData.exitDate).toISOString()
-        : undefined
-
-      const apiData: Record<string, any> = {
-        symbol: finalData.symbol,
-        type: finalData.type,
-        status: finalData.status,
-        entryDate: entryDateISO,
-        exitDate: exitDateISO,
-        // Parse numbers properly
-        entryPrice: Number(finalData.entryPrice),
-        exitPrice: finalData.exitPrice ? Number(finalData.exitPrice) : undefined,
-        quantity: Number(finalData.quantity),
-        stopLoss: finalData.stopLoss ? Number(finalData.stopLoss) : undefined,
-        takeProfit: finalData.takeProfit ? Number(finalData.takeProfit) : undefined,
-        commission: Number(finalData.commission) || 0,
-        swap: Number(finalData.swap) || 0,
-        fees: Number(finalData.fees) || 0,
-        // Remove empty string fields that should be undefined
-        strategyId: finalData.strategyId || undefined,
-        setupType: finalData.setupType || undefined,
-        marketCondition: finalData.marketCondition || undefined,
-        entryEmotion: finalData.entryEmotion || undefined,
-        exitEmotion: finalData.exitEmotion || undefined,
-        preTradeAnalysis: finalData.preTradeAnalysis || undefined,
-        postTradeAnalysis: finalData.postTradeAnalysis || undefined,
-        lessonsLearned: finalData.lessonsLearned || undefined,
-        notes: finalData.notes || undefined,
-        tagIds: finalData.tagIds,
-      }
-
-      // Strip undefined values to avoid sending them
-      Object.keys(apiData).forEach(key => {
-        if (apiData[key] === undefined) {
-          delete apiData[key]
-        }
-      })
-
-      // Include pending partial closes if any
-      if (pendingPartialCloses.length > 0) {
-        apiData.partialCloses = pendingPartialCloses.map(pc => ({
-          quantity: pc.quantity,
-          exitPrice: pc.exitPrice,
-        }));
-      }
-
-      console.log('Submitting trade data:', apiData)
-      onSubmit(apiData)
-    }
   }
 
   const updateField = <K extends keyof TradeFormData>(field: K, value: TradeFormData[K]) => {
     setFormData((prev) => {
       const newData = { ...prev, [field]: value }
-
-      // Auto-update status based on exit price
-      if (field === 'exitPrice') {
-        if (value && (value as number) > 0) {
-          newData.status = 'CLOSED'
-          if (!prev.exitDate) {
-            newData.exitDate = new Date().toISOString().slice(0, 16)
-          }
-        } else if (prev.status === 'CLOSED') {
-          newData.status = 'OPEN'
-        }
+      if (field === 'exitPrice' && value && (value as number) > 0) {
+        newData.status = 'CLOSED'
+        if (!prev.exitDate) newData.exitDate = new Date().toISOString().slice(0, 16)
       }
-
       return newData
     })
-
-    // Clear error for this field
-    if (errors[field]) {
-      setErrors((prev) => {
-        const newErrors = { ...prev }
-        delete newErrors[field]
-        return newErrors
-      })
-    }
+    if (errors[field]) setErrors(prev => {
+        const next = { ...prev };
+        delete next[field];
+        return next;
+    })
   }
 
-  const selectSymbol = (symbol: string) => {
-    updateField('symbol', symbol)
-    setShowSymbolDropdown(false)
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (validate()) {
+      const finalData = { ...formData }
+      const entryDateISO = new Date(finalData.entryDate).toISOString()
+      const exitDateISO = finalData.exitDate ? new Date(finalData.exitDate).toISOString() : undefined
+
+      onSubmit({
+        ...finalData,
+        entryDate: entryDateISO,
+        exitDate: exitDateISO,
+        entryPrice: Number(finalData.entryPrice),
+        exitPrice: finalData.exitPrice ? Number(finalData.exitPrice) : undefined,
+        quantity: Number(finalData.quantity),
+      })
+    }
   }
 
   return (
@@ -355,379 +236,317 @@ export function TradeForm({
       onClose={onClose}
       title=""
       size="md"
-      className="bg-[var(--card-bg)] border-[var(--border)] text-[var(--foreground)] transition-colors duration-300"
+      className="bg-background-secondary border-border p-0 overflow-hidden"
     >
-      <form onSubmit={handleSubmit} className="p-1 space-y-4">
-        {/* Compact Header */}
-        <div className="flex items-center justify-between -mt-1 mb-2 pb-3 border-b border-[var(--border)]">
-          <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-blue-600/10 flex items-center justify-center">
-              <Plus size={14} className="text-blue-600" />
-            </div>
-            <h2 className="text-sm font-bold uppercase tracking-wider text-[var(--foreground)]">
-              {isEditing ? 'Edit Trade' : 'New Trade'}
-            </h2>
-          </div>
-
-          {/* Compact Long/Short Toggle */}
-          <div className="flex p-0.5 bg-[var(--background-tertiary)] rounded-lg text-xs font-medium border border-[var(--border)]">
-            <button
-              type="button"
-              onClick={() => updateField('type', 'BUY')}
-              className={cn(
-                'px-3 py-1 rounded-md transition-all duration-200 flex items-center gap-1.5',
-                formData.type === 'BUY'
-                  ? 'bg-blue-600 text-white shadow-sm'
-                  : 'text-[var(--foreground-muted)] hover:text-[var(--foreground)]'
-              )}
-            >
-              <TrendingUp size={12} />
-              BUY
-            </button>
-            <button
-              type="button"
-              onClick={() => updateField('type', 'SELL')}
-              className={cn(
-                'px-3 py-1 rounded-md transition-all duration-200 flex items-center gap-1.5',
-                formData.type === 'SELL'
-                  ? 'bg-red-600 text-white shadow-sm'
-                  : 'text-[var(--foreground-muted)] hover:text-[var(--foreground)]'
-              )}
-            >
-              <TrendingDown size={12} />
-              SELL
-            </button>
-          </div>
-        </div>
-
-        {/* Row 1: Symbol & Quantity */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="relative group">
-            <label htmlFor="symbol" className="text-[10px] font-bold text-[var(--foreground-muted)] uppercase tracking-wider mb-1 block">Symbol</label>
-            <input
-              id="symbol"
-              type="text"
-              placeholder="XAUUSD"
-              value={formData.symbol}
-              onChange={(e) => {
-                updateField('symbol', e.target.value.toUpperCase())
-                setShowSymbolDropdown(true)
-              }}
-              onFocus={() => setShowSymbolDropdown(true)}
-              onBlur={() => setTimeout(() => setShowSymbolDropdown(false), 200)}
-              className={cn(
-                'w-full h-9 px-3 bg-[var(--input-bg)] border rounded-lg text-sm font-semibold text-[var(--foreground)] placeholder:text-[var(--foreground-disabled)] transition-all',
-                'focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500',
-                errors.symbol ? 'border-red-500' : 'border-[var(--border)] group-hover:border-[var(--border-hover)]'
-              )}
-            />
-
-            {showSymbolDropdown && filteredSymbols.length > 0 && (
-              <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-[var(--card-bg)] border border-[var(--border)] rounded-lg shadow-xl max-h-48 overflow-y-auto">
-                {filteredSymbols.map((item, idx) => (
-                  <button
-                    key={`${item.symbol}-${idx}`}
-                    type="button"
-                    onClick={() => selectSymbol(item.symbol)}
-                    className="w-full px-3 py-2 flex items-center justify-between hover:bg-[var(--background-tertiary)] transition-colors text-left border-b border-[var(--border)] last:border-0"
-                  >
-                    <div className="flex items-center gap-2">
-                      <AssetIcon symbol={item.symbol} size="sm" />
-                      <span className="font-semibold text-xs text-[var(--foreground)]">{item.symbol}</span>
-                    </div>
-                    <span className="text-[10px] text-[var(--foreground-muted)]">{item.description}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-
-          <div className="group">
-            <label htmlFor="quantity" className="text-[10px] font-bold text-[var(--foreground-muted)] uppercase tracking-wider mb-1 block">Lots</label>
-            <input
-              id="quantity"
-              type="number"
-              placeholder="0.00"
-              step="0.01"
-              value={formData.quantity || ''}
-              onChange={(e) => updateField('quantity', parseFloat(e.target.value) || 0)}
-              className={cn(
-                'w-full h-9 px-3 bg-[var(--input-bg)] border rounded-lg text-sm font-mono text-[var(--foreground)] placeholder:text-[var(--foreground-disabled)] transition-all',
-                'focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500',
-                errors.quantity ? 'border-red-500' : 'border-[var(--border)] group-hover:border-[var(--border-hover)]'
-              )}
-            />
-          </div>
-        </div>
-
-        {/* Row 2: Prices */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="group">
-            <label htmlFor="entryPrice" className="text-[10px] font-bold text-[var(--foreground-muted)] uppercase tracking-wider mb-1 block">Entry Price</label>
-            <div className="relative">
-              <span className="absolute left-2.5 top-2 text-[var(--foreground-disabled)] text-xs">$</span>
-              <input
-                id="entryPrice"
-                type="number"
-                placeholder="0.00000"
-                step="0.00001"
-                value={formData.entryPrice || ''}
-                onChange={(e) => updateField('entryPrice', parseFloat(e.target.value) || 0)}
-                className={cn(
-                  'w-full h-9 pl-6 pr-3 bg-[var(--input-bg)] border rounded-lg text-sm font-mono text-[var(--foreground)] placeholder:text-[var(--foreground-disabled)] transition-all',
-                  'focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500',
-                  errors.entryPrice ? 'border-red-500' : 'border-[var(--border)] group-hover:border-[var(--border-hover)]'
-                )}
-              />
-            </div>
-          </div>
-
-          <div className="group">
-            <label htmlFor="exitPrice" className="text-[10px] font-bold text-[var(--foreground-muted)] uppercase tracking-wider mb-1 block">Exit Price</label>
-            <div className="relative">
-              <span className="absolute left-2.5 top-2 text-[var(--foreground-disabled)] text-xs">$</span>
-              <input
-                id="exitPrice"
-                type="number"
-                placeholder="Optional"
-                step="0.00001"
-                value={formData.exitPrice || ''}
-                onChange={(e) => updateField('exitPrice', e.target.value ? parseFloat(e.target.value) : undefined)}
-                className="w-full h-9 pl-6 pr-3 bg-[var(--input-bg)] border border-[var(--border)] rounded-lg text-sm font-mono text-[var(--foreground)] placeholder:text-[var(--foreground-disabled)] transition-all focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 group-hover:border-[var(--border-hover)]"
-              />
-            </div>
-          </div>
-        </div>
-
-        {/* Row 3: Dates */}
-        <div className="grid grid-cols-2 gap-3">
-          <div className="group">
-            <label htmlFor="entryDate" className="text-[10px] font-bold text-[var(--foreground-muted)] uppercase tracking-wider mb-1 block">Open Time</label>
-            <input
-              id="entryDate"
-              type="datetime-local"
-              value={formData.entryDate}
-              onChange={(e) => updateField('entryDate', e.target.value)}
-              className="w-full h-9 px-3 bg-[var(--input-bg)] border border-[var(--border)] rounded-lg text-xs font-medium text-[var(--foreground)] focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 transition-all group-hover:border-[var(--border-hover)] [color-scheme:dark]"
-            />
-          </div>
-
-          <div className="group">
-            <label htmlFor="exitDate" className="text-[10px] font-bold text-[var(--foreground-muted)] uppercase tracking-wider mb-1 block">Close Time</label>
-            <input
-              id="exitDate"
-              type="datetime-local"
-              value={formData.exitDate || ''}
-              onChange={(e) => updateField('exitDate', e.target.value || undefined)}
-              className="w-full h-9 px-3 bg-[var(--input-bg)] border border-[var(--border)] rounded-lg text-xs font-medium text-[var(--foreground)] placeholder:text-[var(--foreground-disabled)] focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 transition-all group-hover:border-[var(--border-hover)] [color-scheme:dark]"
-            />
-          </div>
-        </div>
-
-        {/* Row 4: Notes (Combines Analysis) */}
-        <div className="group">
-          <label htmlFor="notes" className="text-[10px] font-bold text-[var(--foreground-muted)] uppercase tracking-wider mb-1 block">Notes / Analysis</label>
-          <textarea
-            id="notes"
-            placeholder="Quick notes..."
-            value={formData.notes || formData.preTradeAnalysis || ''}
-            onChange={(e) => {
-              updateField('notes', e.target.value)
-              updateField('preTradeAnalysis', e.target.value)
-            }}
-            rows={2}
-            className="w-full px-3 py-2 bg-[var(--input-bg)] border border-[var(--border)] rounded-lg text-xs text-[var(--foreground)] placeholder:text-[var(--foreground-disabled)] focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500 resize-none transition-all group-hover:border-[var(--border-hover)]"
-          />
-        </div>
-
-        {/* Partial Close Section */}
-        {(
-          <div className="border border-[var(--border)] rounded-lg p-3 space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[10px] font-bold text-[var(--foreground-muted)] uppercase tracking-wider">Partial Closes</span>
-              {trade?.partialCloses && trade.partialCloses.length > 0 && (
-                <span className="text-[10px] text-[var(--foreground-muted)]">
-                  {trade.partialCloses.length} existing
+      <form onSubmit={handleSubmit} className="flex flex-col h-full bg-background-secondary">
+        {/* Premium Header */}
+        <div className="px-6 py-5 border-b border-border bg-background-tertiary/30">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col">
+              <h2 className="text-xl font-black tracking-tight flex items-center gap-2">
+                {isEditing ? 'REVISE TRADE' : 'CAPTURE TRADE'}
+                <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-500/10 text-blue-400 rounded-full border border-blue-500/20 uppercase tracking-widest">
+                  Active Session
                 </span>
-              )}
+              </h2>
+              <p className="text-[10px] uppercase tracking-widest font-bold text-foreground-muted mt-0.5">
+                Precision Entry Workflow
+              </p>
             </div>
-
-            {/* Existing partial closes */}
-            {trade?.partialCloses && trade.partialCloses.length > 0 && (
-              <div className="space-y-1.5 max-h-28 overflow-y-auto">
-                {trade.partialCloses.map((pc, idx) => (
-                  <div key={pc.id || idx} className="flex items-center justify-between text-xs p-2 bg-[var(--background-tertiary)] rounded-md">
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-[var(--foreground)]">{parseFloat(String(pc.quantity)).toFixed(2)} lots</span>
-                      <span className="text-[var(--foreground-muted)]">@</span>
-                      <span className="font-mono text-[var(--foreground)]">{parseFloat(String(pc.exitPrice)).toFixed(5)}</span>
-                    </div>
-                    <span className={cn(
-                      "font-mono font-semibold",
-                      pc.pnl && parseFloat(String(pc.pnl)) >= 0 ? "text-[var(--profit)]" : "text-[var(--loss)]"
-                    )}>
-                      {pc.pnl ? `${parseFloat(String(pc.pnl)) >= 0 ? '+' : ''}$${parseFloat(String(pc.pnl)).toFixed(2)}` : '-'}
-                    </span>
-                  </div>
-                ))}
-                {/* Total P&L from partial closes */}
-                <div className="flex items-center justify-between text-xs pt-1.5 border-t border-[var(--border)]">
-                  <span className="text-[var(--foreground-muted)] font-medium">Partial P&L Total</span>
-                  {(() => {
-                    const total = trade.partialCloses.reduce((sum, pc) => sum + (parseFloat(String(pc.pnl)) || 0), 0);
-                    return (
-                      <span className={cn("font-mono font-bold", total >= 0 ? "text-[var(--profit)]" : "text-[var(--loss)]")}>
-                        {total >= 0 ? '+' : ''}${total.toFixed(2)}
-                      </span>
-                    );
-                  })()}
-                </div>
-              </div>
-            )}
-
-            {/* Pending partial closes (to be submitted) */}
-            {pendingPartialCloses.length > 0 && (
-              <div className="space-y-1.5">
-                <span className="text-[10px] text-blue-400 font-medium">Pending (will save on submit):</span>
-                {pendingPartialCloses.map((pc, idx) => (
-                  <div key={idx} className="flex items-center justify-between text-xs p-2 bg-blue-500/10 border border-blue-500/20 rounded-md">
-                    <div className="flex items-center gap-3">
-                      <span className="font-mono text-[var(--foreground)]">{pc.quantity.toFixed(2)} lots</span>
-                      <span className="text-[var(--foreground-muted)]">@</span>
-                      <span className="font-mono text-[var(--foreground)]">{pc.exitPrice.toFixed(5)}</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className={cn(
-                        "font-mono font-semibold",
-                        pc.pnl >= 0 ? "text-[var(--profit)]" : "text-[var(--loss)]"
-                      )}>
-                        {pc.pnl >= 0 ? '+' : ''}${pc.pnl.toFixed(2)}
-                      </span>
-                      <button type="button" title="Remove partial close" onClick={() => setPendingPartialCloses(prev => prev.filter((_, i) => i !== idx))} className="text-red-400 hover:text-red-300 transition-colors">
-                        <X size={12} />
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            {/* Add new partial close */}
-            <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
-              <div>
-                <label htmlFor="pcQty" className="text-[9px] font-bold text-[var(--foreground-muted)] uppercase tracking-wider mb-0.5 block">Qty (Lots)</label>
-                <input
-                  id="pcQty"
-                  type="number"
-                  step="0.01"
-                  min="0.01"
-                  placeholder="0.50"
-                  value={partialCloseQty || ''}
-                  onChange={(e) => setPartialCloseQty(parseFloat(e.target.value) || 0)}
-                  className="w-full h-8 px-2 bg-[var(--input-bg)] border border-[var(--border)] rounded-md text-xs font-mono text-[var(--foreground)] placeholder:text-[var(--foreground-disabled)] focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label htmlFor="pcPrice" className="text-[9px] font-bold text-[var(--foreground-muted)] uppercase tracking-wider mb-0.5 block">Close Price</label>
-                <input
-                  id="pcPrice"
-                  type="number"
-                  step="0.00001"
-                  placeholder="1.2345"
-                  value={partialClosePrice || ''}
-                  onChange={(e) => setPartialClosePrice(parseFloat(e.target.value) || 0)}
-                  className="w-full h-8 px-2 bg-[var(--input-bg)] border border-[var(--border)] rounded-md text-xs font-mono text-[var(--foreground)] placeholder:text-[var(--foreground-disabled)] focus:outline-none focus:ring-1 focus:ring-blue-500/50 focus:border-blue-500"
-                />
-              </div>
+            
+            {/* Direction Toggle - Ultra Premium */}
+            <div className="flex p-1 bg-background-tertiary rounded-xl border border-border shadow-inner">
               <button
                 type="button"
-                disabled={!partialCloseQty || !partialClosePrice || partialCloseQty <= 0 || partialClosePrice <= 0}
-                onClick={() => {
-                  if (partialCloseQty > 0 && partialClosePrice > 0 && formData.entryPrice) {
-                    const result = calculateTradePnL({
-                      type: formData.type,
-                      entryPrice: formData.entryPrice,
-                      exitPrice: partialClosePrice,
-                      quantity: partialCloseQty,
-                      symbol: formData.symbol,
-                    });
-                    setPendingPartialCloses(prev => [...prev, { quantity: partialCloseQty, exitPrice: partialClosePrice, pnl: result.pnl }]);
-                    setPartialCloseQty(0);
-                    setPartialClosePrice(0);
-                  }
-                }}
-                className="h-8 px-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 disabled:cursor-not-allowed text-white text-[10px] font-bold rounded-md transition-all"
+                onClick={() => updateField('type', 'BUY')}
+                className={cn(
+                  'px-5 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 text-xs font-black uppercase tracking-widest',
+                  formData.type === 'BUY'
+                    ? 'bg-profit text-white shadow-lg shadow-profit/20 scale-105'
+                    : 'text-foreground-muted hover:text-foreground hover:bg-white/5'
+                )}
               >
-                ADD
+                <TrendingUp size={14} />
+                Long
+              </button>
+              <button
+                type="button"
+                onClick={() => updateField('type', 'SELL')}
+                className={cn(
+                  'px-5 py-2 rounded-lg transition-all duration-300 flex items-center gap-2 text-xs font-black uppercase tracking-widest',
+                  formData.type === 'SELL'
+                    ? 'bg-loss text-white shadow-lg shadow-loss/20 scale-105'
+                    : 'text-foreground-muted hover:text-foreground hover:bg-white/5'
+                )}
+              >
+                <TrendingDown size={14} />
+                Short
               </button>
             </div>
+          </div>
+        </div>
 
-            {/* Live preview of P&L for current inputs */}
-            {partialCloseQty > 0 && partialClosePrice > 0 && formData.entryPrice > 0 && (() => {
-              const previewResult = calculateTradePnL({
-                type: formData.type,
-                entryPrice: formData.entryPrice,
-                exitPrice: partialClosePrice,
-                quantity: partialCloseQty,
-                symbol: formData.symbol,
-              });
-              const previewPnl = previewResult.pnl;
-              return (
-                <div className="flex items-center justify-between text-[10px] text-[var(--foreground-muted)] px-1">
-                  <span>Preview P&L:</span>
-                  <span className={cn("font-mono font-bold", previewPnl >= 0 ? "text-[var(--profit)]" : "text-[var(--loss)]")}>
-                    {previewPnl >= 0 ? '+' : ''}${previewPnl.toFixed(2)}
-                  </span>
+        <div className="p-6 space-y-6 overflow-y-auto max-h-[70vh]">
+          {/* Main Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Left Column: Execution Data */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <CheckCircle2 size={14} className="text-blue-500" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-foreground-muted">Execution Details</span>
+              </div>
+
+              <div className="relative group">
+                <label className="text-[9px] font-black uppercase tracking-widest text-foreground-muted mb-1.5 block ml-1">Symbol Asset</label>
+                <div className="relative">
+                  <div className="absolute left-3 top-1/2 -translate-y-1/2 z-10">
+                    <AssetIcon symbol={formData.symbol} size="sm" />
+                  </div>
+                  <input
+                    id="symbol"
+                    type="text"
+                    placeholder="XAUUSD"
+                    value={formData.symbol}
+                    onChange={(e) => {
+                      updateField('symbol', e.target.value.toUpperCase())
+                      setShowSymbolDropdown(true)
+                    }}
+                    onFocus={() => setShowSymbolDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowSymbolDropdown(false), 200)}
+                    className={cn(
+                      "w-full h-11 pl-10 pr-4 bg-background-tertiary border rounded-xl text-sm font-bold transition-all duration-200",
+                      "focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
+                      errors.symbol ? 'border-loss' : 'border-border group-hover:border-border-hover'
+                    )}
+                  />
+                  {showSymbolDropdown && filteredSymbols.length > 0 && (
+                    <div className="absolute z-50 top-full left-0 right-0 mt-2 bg-background-secondary border border-border rounded-xl shadow-2xl overflow-hidden ring-1 ring-black/20 animate-in fade-in slide-in-from-top-2">
+                      {filteredSymbols.map((item, idx) => (
+                        <button
+                          key={idx}
+                          type="button"
+                          onClick={() => {
+                            updateField('symbol', item.symbol)
+                            setShowSymbolDropdown(false)
+                          }}
+                          className="w-full px-4 py-3 flex items-center justify-between hover:bg-background-tertiary transition-colors text-left"
+                        >
+                          <div className="flex items-center gap-3">
+                            <AssetIcon symbol={item.symbol} size="sm" />
+                            <span className="font-bold text-sm">{item.symbol}</span>
+                          </div>
+                          <span className="text-[10px] font-bold text-foreground-muted bg-background-secondary px-2 py-0.5 rounded border border-border uppercase">{item.description}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
-              );
-            })()}
-          </div>
-        )}
+              </div>
 
-        {/* P&L Bar (Compact) */}
-        {calculatedPnL && (
-          <div className="flex items-center justify-between p-2.5 bg-[var(--background-tertiary)]/50 border border-[var(--border)] rounded-lg">
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-[var(--foreground-muted)] uppercase">EST. P&L</span>
-              <span className={cn(
-                "text-sm font-mono font-bold",
-                calculatedPnL.netPnL >= 0 ? "text-[var(--profit)]" : "text-[var(--loss)]"
-              )}>
-                {calculatedPnL.netPnL >= 0 ? '+' : ''}${calculatedPnL.netPnL.toFixed(2)}
-              </span>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="group">
+                  <label htmlFor="quantity" className="text-[9px] font-black uppercase tracking-widest text-foreground-muted mb-1.5 block ml-1">Lots (Size)</label>
+                  <input
+                    id="quantity"
+                    type="number"
+                    step="0.01"
+                    placeholder="0.01"
+                    title="Quantity"
+                    value={formData.quantity || ''}
+                    onChange={(e) => updateField('quantity', parseFloat(e.target.value) || 0)}
+                    className={cn(
+                      "w-full h-11 px-4 bg-background-tertiary border rounded-xl text-sm font-mono font-bold transition-all duration-200",
+                      "focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
+                      errors.quantity ? 'border-loss' : 'border-border group-hover:border-border-hover'
+                    )}
+                  />
+                </div>
+                <div>
+                  <label className="text-[9px] font-black uppercase tracking-widest text-foreground-muted mb-1.5 block ml-1">Open Date</label>
+                  <div className="relative">
+                    <Calendar size={12} className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted" />
+                    <input
+                      id="entryDate"
+                      type="datetime-local"
+                      title="Entry Date"
+                      value={formData.entryDate}
+                      onChange={(e) => updateField('entryDate', e.target.value)}
+                      className="w-full h-11 pl-9 pr-3 bg-background-tertiary border border-border rounded-xl text-[11px] font-bold focus:ring-2 focus:ring-blue-500/20 transition-all [color-scheme:dark]"
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
-            <div className="flex items-center gap-2">
-              <span className="text-[10px] font-bold text-[var(--foreground-muted)] uppercase">PIPS</span>
-              <span className={cn(
-                "text-sm font-mono font-bold",
-                calculatedPnL.pips >= 0 ? "text-[var(--profit)]" : "text-[var(--loss)]"
-              )}>
-                {calculatedPnL.pips >= 0 ? '+' : ''}{calculatedPnL.pips.toFixed(1)}
-              </span>
+
+            {/* Right Column: Pricing & Exit */}
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <Target size={14} className="text-blue-500" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-foreground-muted">Levels & Targets</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div className="group">
+                  <label htmlFor="entryPrice" className="text-[9px] font-black uppercase tracking-widest text-foreground-muted mb-1.5 block ml-1">Entry Price</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted text-xs font-bold">$</span>
+                    <input
+                      id="entryPrice"
+                      type="number"
+                      step="0.00001"
+                      placeholder="0.00000"
+                      title="Entry Price"
+                      value={formData.entryPrice || ''}
+                      onChange={(e) => updateField('entryPrice', parseFloat(e.target.value) || 0)}
+                      className={cn(
+                        "w-full h-11 pl-7 pr-4 bg-background-tertiary border rounded-xl text-sm font-mono font-bold transition-all duration-200",
+                        "focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500",
+                        errors.entryPrice ? 'border-loss' : 'border-border group-hover:border-border-hover'
+                      )}
+                    />
+                  </div>
+                </div>
+                <div className="group">
+                  <label htmlFor="exitPrice" className="text-[9px] font-black uppercase tracking-widest text-foreground-muted mb-1.5 block ml-1">Exit Price</label>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-foreground-muted text-xs font-bold">$</span>
+                    <input
+                      id="exitPrice"
+                      type="number"
+                      step="0.00001"
+                      placeholder="Closed Price"
+                      title="Exit Price"
+                      value={formData.exitPrice || ''}
+                      onChange={(e) => updateField('exitPrice', e.target.value ? parseFloat(e.target.value) : undefined)}
+                      className="w-full h-11 pl-7 pr-4 bg-background-tertiary border border-border rounded-xl text-sm font-mono font-bold transition-all duration-200 focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 group-hover:border-border-hover"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                 <div className="group">
+                    <label className="text-[9px] font-black uppercase tracking-widest text-foreground-muted mb-1.5 block ml-1 text-loss-light">Stop Loss</label>
+                    <input
+                      type="number"
+                      step="0.00001"
+                      placeholder="S/L"
+                      value={formData.stopLoss || ''}
+                      onChange={(e) => updateField('stopLoss', e.target.value ? parseFloat(e.target.value) : undefined)}
+                      className="w-full h-11 px-4 bg-background-tertiary border border-border rounded-xl text-sm font-mono font-bold transition-all duration-200 border-loss/20 focus:ring-2 focus:ring-loss/10 focus:border-loss/40 group-hover:border-loss/30"
+                    />
+                  </div>
+                  <div className="group">
+                    <label htmlFor="takeProfit" className="text-[9px] font-black uppercase tracking-widest text-foreground-muted mb-1.5 block ml-1 text-profit-light">Take Profit</label>
+                    <input
+                      id="takeProfit"
+                      type="number"
+                      step="0.00001"
+                      placeholder="T/P"
+                      title="Take Profit"
+                      value={formData.takeProfit || ''}
+                      onChange={(e) => updateField('takeProfit', e.target.value ? parseFloat(e.target.value) : undefined)}
+                      className="w-full h-11 px-4 bg-background-tertiary border border-border rounded-xl text-sm font-mono font-bold transition-all duration-200 border-profit/20 focus:ring-2 focus:ring-profit/10 focus:border-profit/40 group-hover:border-profit/30"
+                    />
+                  </div>
+              </div>
             </div>
           </div>
-        )}
 
-        {/* Compact Actions */}
-        <div className="flex items-center justify-end gap-2 pt-2 border-t border-[var(--border)]">
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={onClose}
-            disabled={loading}
-            className="h-8 text-xs font-semibold text-[var(--foreground-muted)] hover:text-[var(--foreground)]"
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            isLoading={loading}
-            className="h-8 px-4 bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-md shadow-blue-600/10 rounded-md transition-all hover:scale-[1.02]"
-          >
-            {isEditing ? 'UPDATE' : 'CREATE'}
-          </Button>
+          {/* Strategy & Analytics Section */}
+          <div className="pt-4 border-t border-border">
+            <div className="flex items-center gap-2 mb-4">
+              <Info size={14} className="text-purple-500" />
+              <span className="text-[10px] font-black uppercase tracking-widest text-foreground-muted">Strategy & Context</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="md:col-span-1">
+                <label className="text-[9px] font-black uppercase tracking-widest text-foreground-muted mb-1.5 block ml-1">Trading Strategy</label>
+                <select
+                  value={formData.strategyId}
+                  title="Strategy"
+                  onChange={(e) => updateField('strategyId', e.target.value)}
+                  className="w-full h-11 px-4 bg-background-tertiary border border-border rounded-xl text-xs font-bold focus:ring-2 focus:ring-blue-500/20 appearance-none transition-all"
+                >
+                  <option value="">No Strategy</option>
+                  {strategies.map(s => (
+                    <option key={s.id} value={s.id}>{s.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="md:col-span-2">
+                <label className="text-[9px] font-black uppercase tracking-widest text-foreground-muted mb-1.5 block ml-1">Trade Notes / Journal</label>
+                <textarea
+                  placeholder="Describe your reasoning, confluence, or emotions..."
+                  value={formData.notes || ''}
+                  onChange={(e) => updateField('notes', e.target.value)}
+                  className="w-full h-11 px-4 py-2.5 bg-background-tertiary border border-border rounded-xl text-xs font-medium focus:ring-2 focus:ring-blue-500/20 resize-none transition-all"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Real-time Preview */}
+          {calculatedPnL && (
+            <div className="relative group overflow-hidden rounded-2xl border border-blue-500/30 bg-blue-500/5 p-4 transition-all hover:bg-blue-500/10">
+               <div className="absolute top-0 right-0 p-2 opacity-5">
+                  <DollarSign size={80} className="text-blue-500" />
+               </div>
+               <div className="flex items-center justify-between relative z-10">
+                  <div className="flex flex-col">
+                    <span className="text-[9px] font-black uppercase tracking-widest text-blue-400">Projected Performance</span>
+                    <div className={cn(
+                      "text-2xl font-black tracking-tighter mt-1",
+                      calculatedPnL.netPnL >= 0 ? "text-profit-light" : "text-loss-light"
+                    )}>
+                      {calculatedPnL.netPnL >= 0 ? '+' : '-'}${Math.abs(calculatedPnL.netPnL).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                    </div>
+                  </div>
+                  <div className="flex gap-4 border-l border-blue-500/20 pl-4">
+                    <div className="flex flex-col text-right">
+                      <span className="text-[8px] font-black uppercase tracking-widest text-foreground-muted">Net Pips</span>
+                      <span className="font-mono font-bold text-sm text-blue-400">{calculatedPnL.pips.toFixed(1)}</span>
+                    </div>
+                    <div className="flex flex-col text-right">
+                      <span className="text-[8px] font-black uppercase tracking-widest text-foreground-muted">Gross P&L</span>
+                      <span className="font-mono font-bold text-sm text-foreground">${calculatedPnL.pnl.toFixed(2)}</span>
+                    </div>
+                  </div>
+               </div>
+            </div>
+          )}
+        </div>
+
+        {/* Footer Actions */}
+        <div className="px-6 py-5 border-t border-border bg-background-tertiary/30 flex items-center justify-between mt-auto">
+          <div className="flex items-center gap-2">
+            <Info size={14} className="text-foreground-muted" />
+            <p className="text-[10px] text-foreground-muted font-bold tracking-tight">
+              Fields with <span className="text-red-500">*</span> are mandatory for ledger consistency.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={onClose}
+              disabled={loading}
+              className="h-10 px-6 rounded-xl font-bold text-xs uppercase tracking-widest border-border bg-background-tertiary hover:bg-background-tertiary/70"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              isLoading={loading}
+              className="h-10 px-8 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-black text-xs uppercase tracking-widest shadow-xl shadow-blue-500/20 transition-transform active:scale-95"
+            >
+              {isEditing ? 'UPDATE POSITION' : 'COMMIT TRADE'}
+            </Button>
+          </div>
         </div>
       </form>
     </Modal>
   )
 }
+

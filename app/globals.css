@@ -5,27 +5,33 @@
 /* Dark theme (default) */
 :root,
 .dark {
-  --background: #000000;
-  --background-secondary: #050505;
-  --background-tertiary: #0a0a0a;
-  --foreground: #ffffff;
-  --foreground-muted: #94a3b8;
-  --foreground-disabled: #475569;
-  --border: #1e293b;
-  --border-hover: #334155;
-  --profit: #10b981;
-  --profit-light: #34d399;
-  --profit-dark: #059669;
-  --loss: #ef4444;
-  --loss-light: #f87171;
-  --loss-dark: #dc2626;
-  --card-bg: #0d1117;
-  --input-bg: #050505;
-  --header-bg: #000000;
+  --primary: #3b82f6;
+  --primary-glow: rgba(59, 130, 246, 0.5);
+  --background: #02040a;
+  --background-secondary: #0d1117;
+  --background-tertiary: #161b22;
+  --foreground: #f0f6fc;
+  --foreground-muted: #8b949e;
+  --foreground-disabled: #484f58;
+  --border: #30363d;
+  --border-hover: #8b949e;
+  --profit: #238636;
+  --profit-light: #3fb950;
+  --profit-dark: #2ea043;
+  --loss: #da3633;
+  --loss-light: #f85149;
+  --loss-dark: #f85149;
+  --card-bg: rgba(13, 17, 23, 0.7);
+  --input-bg: #02040a;
+  --header-bg: rgba(2, 4, 10, 0.8);
+  --radius: 12px;
+  --glow-strength: 20px;
 }
 
 /* Light theme */
 .light {
+  --primary: #0066ff;
+  --primary-hover: #0052cc;
   --background: #f8fafc;
   --background-secondary: #ffffff;
   --background-tertiary: #f1f5f9;
@@ -40,9 +46,10 @@
   --loss: #dc2626;
   --loss-light: #ef4444;
   --loss-dark: #b91c1c;
-  --card-bg: #ffffff;
+  --card-bg: #ffffff / 0.7;
   --input-bg: #f8fafc;
-  --header-bg: #ffffff;
+  --header-bg: #ffffff / 0.8;
+  --radius: 12px;
 }
 
 @layer base {
@@ -60,7 +67,7 @@
     background-image: url('/logo.png');
     background-repeat: no-repeat;
     background-position: center;
-    background-size: 40vw; /* Adjust size as needed */
+    background-size: 40vw;
     filter: grayscale(1);
   }
 
@@ -71,46 +78,63 @@
 
 @layer components {
   .card {
-    @apply bg-background-secondary border border-border rounded-lg p-4;
+    @apply bg-background-secondary/50 backdrop-blur-md border border-border rounded-[var(--radius)] p-5 shadow-xl transition-all duration-300;
+  }
+
+  .premium-card {
+    @apply relative overflow-hidden bg-background-secondary/40 backdrop-blur-xl border border-white/5 rounded-[var(--radius)] p-6 
+           shadow-[0_8px_32px_0_rgba(0,0,0,0.8)] transition-all duration-500
+           hover:border-blue-500/30 hover:shadow-blue-500/10;
+  }
+
+  .premium-card::before {
+    content: "";
+    @apply absolute -inset-[100%] pointer-events-none opacity-0 transition-opacity duration-1000;
+    background: radial-gradient(circle at center, var(--primary-glow) 0%, transparent 70%);
+  }
+
+  .premium-card:hover::before {
+    @apply opacity-20;
   }
 
   .input {
-    @apply bg-background-tertiary border border-border rounded-md px-3 py-2 text-sm 
-           focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent
-           placeholder:text-foreground-disabled;
+    @apply bg-background-tertiary/50 border border-border rounded-[var(--radius)] px-4 py-2.5 text-sm 
+           focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500
+           placeholder:text-foreground-disabled transition-all backdrop-blur-sm;
   }
 
   .btn {
-    @apply px-4 py-2 rounded-md font-medium transition-colors duration-200
-           disabled:opacity-50 disabled:cursor-not-allowed;
+    @apply px-5 py-2.5 rounded-xl font-bold transition-all duration-300
+           disabled:opacity-50 disabled:cursor-not-allowed active:scale-[0.96]
+           inline-flex items-center justify-center gap-2 tracking-tight;
   }
 
   .btn-primary {
-    @apply btn bg-blue-600 hover:bg-blue-700 text-white;
+    @apply btn bg-blue-600 hover:bg-blue-500 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_30px_rgba(37,99,235,0.5)];
   }
 
   .btn-secondary {
-    @apply btn bg-background-tertiary hover:bg-border border border-border text-foreground;
+    @apply btn bg-white/5 hover:bg-white/10 border border-white/10 text-foreground hover:border-white/20;
   }
 
   .btn-ghost {
-    @apply btn hover:bg-background-tertiary text-foreground-muted hover:text-foreground;
+    @apply btn hover:bg-white/5 text-foreground-muted hover:text-foreground;
   }
 
   .badge {
-    @apply inline-flex items-center px-2 py-0.5 rounded text-xs font-medium;
+    @apply inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest;
   }
 
   .badge-success {
-    @apply badge bg-profit/20 text-profit-light;
+    @apply badge bg-profit/10 text-profit-light border border-profit/20 shadow-[0_0_15px_rgba(35,134,54,0.1)];
   }
 
   .badge-danger {
-    @apply badge bg-loss/20 text-loss-light;
+    @apply badge bg-loss/10 text-loss-light border border-loss/20 shadow-[0_0_15px_rgba(218,54,51,0.1)];
   }
 
   .badge-neutral {
-    @apply badge bg-background-tertiary text-foreground-muted;
+    @apply badge bg-white/5 text-foreground-muted border border-white/10;
   }
 }
 

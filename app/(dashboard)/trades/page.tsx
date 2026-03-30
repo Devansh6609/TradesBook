@@ -221,254 +221,177 @@ export default function TradesPage() {
   const totalTrades = data?.pagination.total || 0
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-[var(--foreground)]">Trades</h1>
-          <p className="text-[var(--foreground-muted)] mt-1 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full bg-[var(--foreground-muted)]" />
-            Not connected
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button
-            variant="secondary"
-            className="gap-2 bg-blue-600 hover:bg-blue-700 border-0 text-white"
-            onClick={() => {/* Open connect modal */ }}
-          >
-            <Link2 size={18} />
-            Connect MT4/MT5
-          </Button>
-          <Button
-            variant="secondary"
-            className="gap-2 bg-gradient-to-r from-purple-600/20 to-blue-600/20 border-blue-500/30 text-blue-400 hover:from-purple-600/30 hover:to-blue-600/30"
-            onClick={() => setIsSyncModalOpen(true)}
-          >
-            <History size={18} />
-            Sync History
-          </Button>
-          <Button
-            variant="secondary"
-            className="gap-2 border border-[var(--border)] text-[var(--foreground)] hover:bg-[var(--background-tertiary)]"
-            onClick={() => setIsImportOpen(true)}
-          >
-            <Upload size={18} />
-            Import CSV
-          </Button>
-          <Button
-            className="gap-2 bg-blue-600 hover:bg-blue-700"
-            onClick={() => {
-              setEditingTrade(null)
-              setIsFormOpen(true)
-            }}
-          >
-            <Plus size={18} />
-            Add Trade
-          </Button>
-        </div>
+    <div className="space-y-8 pb-10">
+      {/* Header Section with Glassmorphism */}
+      <div className="relative group">
+        <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-blue-500/5 blur-3xl rounded-[3rem] opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
+        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-black/20 border border-white/5 p-8 rounded-3xl backdrop-blur-xl shadow-2xl">
+          <div className="space-y-1.5">
+            <div className="flex items-center gap-3">
+              <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full" />
+              <h1 className="text-3xl font-black text-white tracking-tight uppercase">Terminal_History</h1>
+            </div>
+            <p className="text-[11px] font-bold text-foreground-disabled/60 uppercase tracking-[0.4em] flex items-center gap-2 pl-5">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+              </span>
+              MT4/MT5 Node Offline — Manual Entry Mode Active
+            </p>
+          </div>
 
+          <div className="flex flex-wrap items-center gap-3">
+            <button
+              onClick={() =>setIsSyncModalOpen(true)}
+              className="group relative px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-black text-white uppercase tracking-widest hover:bg-white/10 active:scale-95 transition-all overflow-hidden"
+            >
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-blue-500/0 -translate-x-full group-hover:animate-[shimmer_2s_infinite]" />
+              <div className="flex items-center gap-2 relative z-10">
+                <History size={14} className="group-hover:rotate-180 transition-transform duration-500" />
+                Sync History
+              </div>
+            </button>
+
+            <button
+              onClick={() => setIsImportOpen(true)}
+              className="px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-black text-white uppercase tracking-widest hover:bg-white/10 active:scale-95 transition-all flex items-center gap-2"
+            >
+              <Upload size={14} />
+              Import CSV
+            </button>
+
+            <button
+              onClick={() => {
+                setEditingTrade(null)
+                setIsFormOpen(true)
+              }}
+              className="px-8 py-2.5 rounded-xl bg-blue-600 text-xs font-black text-white uppercase tracking-widest hover:bg-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.5)] active:scale-95 transition-all flex items-center gap-2 border border-blue-400/20"
+            >
+              <Plus size={14} strokeWidth={3} />
+              New Position
+            </button>
+          </div>
+        </div>
       </div>
 
-      {/* Trade History Card */}
-      <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-xl">
-        {/* Card Header */}
-        <div className="flex items-center justify-between p-4 border-b border-[var(--border)]">
-          <div className="flex items-center gap-3">
-            <h2 className="text-lg font-semibold text-[var(--foreground)]">Trade History</h2>
-            <span className="text-sm text-[var(--foreground-muted)]">{totalTrades} of {totalTrades} trades</span>
-          </div>
-          <Button
-            variant="ghost"
-            size="sm"
-            className={cn(
-              "gap-2 text-[var(--foreground-muted)] hover:text-[var(--foreground)]",
-              showFilters && "bg-blue-600/10 text-blue-400"
-            )}
-            onClick={() => setShowFilters(!showFilters)}
-          >
-            <Filter size={16} />
-            Filters
-          </Button>
-        </div>
+      {/* Main Content Area */}
+      <div className="relative group/content">
+        {/* Background Glow */}
+        <div className="absolute inset-0 bg-blue-500/[0.01] blur-3xl rounded-[2rem] -z-10" />
 
-        {/* Free Plan Notice */}
-        <div className="mx-4 mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-lg">
-          <p className="text-sm text-blue-400">
-            Free plan loads <span className="font-semibold underline cursor-pointer">your last 15 trades</span>. Upgrade to Pro to unlock full history and longer timeframes.
-          </p>
-        </div>
+        <div className="bg-black/40 border border-white/5 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-md">
+          {/* Toolbar */}
+          <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <div className="flex flex-col">
+                <h2 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Data stream</h2>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-bold text-white uppercase tracking-tight">Active Vectors</span>
+                  <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-[10px] font-black text-foreground-disabled">
+                    {totalTrades}
+                  </span>
+                </div>
+              </div>
+            </div>
 
-        {/* Filters */}
-        {showFilters && (
-          <div className="p-4 border-b border-[var(--border)]">
-            <TradeFilters
-              filters={filters}
-              onChange={setFilters}
-              strategies={strategies}
-            />
-          </div>
-        )}
-
-        {/* Trade Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
-              <tr className="text-left text-xs text-[var(--foreground-muted)] border-b border-[var(--border)]">
-                <th className="px-4 py-3 font-medium">OPEN / CLOSE</th>
-                <th className="px-4 py-3 font-medium">SYMBOL</th>
-                <th className="px-4 py-3 font-medium">TYPE</th>
-                <th className="px-4 py-3 font-medium">ENTRY</th>
-                <th className="px-4 py-3 font-medium">EXIT</th>
-                <th className="px-4 py-3 font-medium">SIZE</th>
-                <th className="px-4 py-3 font-medium">P&L</th>
-                <th className="px-4 py-3 font-medium">SOURCE</th>
-              </tr>
-            </thead>
-            <tbody>
-              {isLoading ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-16 text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin mb-4" />
-                      <p className="text-gray-500">Loading trades...</p>
-                    </div>
-                  </td>
-                </tr>
-              ) : trades.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="px-4 py-16 text-center">
-                    <div className="flex flex-col items-center justify-center">
-                      <div className="w-16 h-16 rounded-full bg-[var(--background-tertiary)] flex items-center justify-center mb-4">
-                        <Filter className="w-8 h-8 text-[var(--foreground-muted)]" />
-                      </div>
-                      <p className="text-[var(--foreground-muted)] mb-2">No trades match your filters</p>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setFilters({
-                          symbol: '',
-                          type: '',
-                          status: '',
-                          strategyId: '',
-                          dateFrom: null,
-                          dateTo: null,
-                          minPnl: '',
-                          maxPnl: '',
-                        })}
-                        className="text-gray-500"
-                      >
-                        Clear Filters
-                      </Button>
-                    </div>
-                  </td>
-                </tr>
-              ) : (
-                trades.map((trade) => (
-                  <tr
-                    key={trade.id}
-                    className="border-b border-[var(--border)] hover:bg-[var(--foreground)]/5 transition-colors"
-                  >
-                    <td className="px-4 py-3">
-                      <div className="text-sm space-y-0.5">
-                        <p className="text-[var(--foreground-muted)]">
-                          <span className="text-[var(--foreground-disabled)] mr-1">Open:</span>
-                          {format(new Date(trade.entryDate), 'MMM d hh:mm a')}
-                        </p>
-                        {trade.exitDate && (
-                          <p className="text-[var(--foreground-muted)]">
-                            <span className="text-[var(--foreground-disabled)] mr-1">Close:</span>
-                            {format(new Date(trade.exitDate), 'MMM d hh:mm a')}
-                          </p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-lg">💰</span>
-                        <span className="text-[var(--foreground)] font-medium">{trade.symbol}</span>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={cn(
-                        "px-2 py-1 text-xs font-medium rounded flex items-center gap-1 w-fit",
-                        trade.type === 'BUY'
-                          ? "bg-blue-500/20 text-blue-400"
-                          : "bg-red-500/20 text-red-400"
-                      )}>
-                        <TrendingUp size={12} className={trade.type === 'BUY' ? '' : 'rotate-180'} />
-                        {trade.type === 'BUY' ? 'Long' : 'Short'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-[var(--foreground-muted)]">${trade.entryPrice}</td>
-                    <td className="px-4 py-3 text-[var(--foreground-muted)]">{trade.exitPrice ? `$${trade.exitPrice}` : '-'}</td>
-                    <td className="px-4 py-3 text-[var(--foreground-muted)]">{trade.quantity}</td>
-                    <td className={cn(
-                      "px-4 py-3 font-medium",
-                      trade.pnl && parseFloat(String(trade.pnl)) >= 0 ? "text-green-400" : "text-red-400"
-                    )}>
-                      {trade.pnl ? `${parseFloat(String(trade.pnl)) >= 0 ? '+' : ''}$${parseFloat(String(trade.pnl)).toFixed(2)}` : '-'}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-amber-400 bg-amber-500/10 px-2 py-1 rounded flex items-center gap-1">
-                          <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 20 20">
-                            <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
-                          </svg>
-                          Manual
-                        </span>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); handleEdit(trade) }}
-                          className="p-1.5 hover:bg-[var(--background-tertiary)] rounded transition-colors"
-                          title="Edit trade"
-                        >
-                          <svg className="w-4 h-4 text-[var(--foreground-muted)]" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-                          </svg>
-                        </button>
-                        <button
-                          onClick={(e) => { e.stopPropagation(); setDeletingTrade(trade) }}
-                          className="p-1.5 hover:bg-red-500/20 rounded transition-colors"
-                          title="Delete trade"
-                        >
-                          <Trash2 size={16} className="text-[var(--foreground-muted)] hover:text-red-400" />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        {/* Pagination */}
-        {trades.length > 0 && (
-          <div className="flex items-center justify-between p-4 border-t border-[var(--border)]">
-            <p className="text-sm text-[var(--foreground-muted)]">
-              Showing {((page - 1) * limit) + 1} to {Math.min(page * limit, totalTrades)} of {totalTrades} trades
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={page === 1}
-                onClick={() => setPage(p => p - 1)}
+            <div className="flex items-center gap-3">
+              <button
+                onClick={() => setShowFilters(!showFilters)}
+                className={cn(
+                  "p-2 rounded-lg border transition-all active:scale-95",
+                  showFilters
+                    ? "bg-blue-600/10 border-blue-500/30 text-blue-400"
+                    : "bg-white/5 border-white/10 text-foreground-disabled hover:text-white hover:bg-white/10"
+                )}
+                title="Filter Matrix"
               >
-                Previous
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={page * limit >= totalTrades}
-                onClick={() => setPage(p => p + 1)}
+                <Filter size={18} />
+              </button>
+              
+              <div className="h-4 w-px bg-white/10 mx-1" />
+
+              <button
+                onClick={handleExport}
+                className="p-2 rounded-lg bg-white/5 border border-white/10 text-foreground-disabled hover:text-white hover:bg-white/10 transition-all active:scale-95"
+                title="Export Data"
               >
-                Next
-              </Button>
+                <Download size={18} />
+              </button>
             </div>
           </div>
-        )}
+
+          {/* Expanded Filters */}
+          {showFilters && (
+            <div className="p-6 border-b border-white/5 bg-white/[0.01] animate-in fade-in slide-in-from-top-2 duration-300">
+              <TradeFilters
+                filters={filters}
+                onChange={setFilters}
+                strategies={strategies}
+              />
+            </div>
+          )}
+
+          {/* Trade Matrix (Table) */}
+          <TradeTable
+            trades={trades}
+            loading={isLoading}
+            totalCount={totalTrades}
+            page={page}
+            limit={limit}
+            onPageChange={setPage}
+            onLimitChange={setLimit}
+            selectedTrades={selectedTrades}
+            onSelectTrade={handleSelectTrade}
+            onSelectAll={handleSelectAll}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+            onSort={handleSort}
+            sortBy={sortBy}
+            sortOrder={sortOrder}
+          />
+        </div>
       </div>
+
+      {/* Floating Bulk Actions Bar */}
+      {selectedTrades.length > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 duration-500">
+          <div className="bg-black/80 backdrop-blur-2xl border border-white/10 px-6 py-3 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-6">
+            <div className="flex items-center gap-3 pr-6 border-r border-white/10">
+              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-xs">
+                {selectedTrades.length}
+              </div>
+              <span className="text-[10px] font-black text-white uppercase tracking-widest">Vectors Selected</span>
+            </div>
+            
+            <div className="flex items-center gap-3">
+              <button
+                onClick={handleExport}
+                className="flex items-center gap-2 text-[10px] font-black text-foreground-disabled hover:text-white uppercase tracking-widest transition-colors"
+                title="Export Selected"
+              >
+                <Download size={14} />
+                Export
+              </button>
+              <button
+                onClick={() => {
+                  // Actually implement bulk delete if needed, for now just show modal for one
+                  toast.error("Bulk Delete sequence pending implementation")
+                }}
+                className="flex items-center gap-2 text-[10px] font-black text-loss opacity-80 hover:opacity-100 uppercase tracking-widest transition-opacity"
+              >
+                <Trash2 size={14} />
+                Purge_All
+              </button>
+              <button
+                onClick={() => setSelectedTrades([])}
+                className="ml-2 text-[10px] font-black text-foreground-disabled hover:text-white uppercase tracking-widest opacity-40 hover:opacity-100"
+              >
+                Dismiss
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Trade Form Modal */}
       <TradeForm

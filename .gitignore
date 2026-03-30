@@ -75,3 +75,8 @@ migrate.js
 dist/
 **/dist/
 **/.wrangler/
+
+# databases
+*.sqlite
+*.db
+

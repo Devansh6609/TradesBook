@@ -5,25 +5,25 @@
 /* Dark theme (default) */
 :root,
 .dark {
-  --primary: #3b82f6;
-  --primary-glow: rgba(59, 130, 246, 0.5);
-  --background: 2 4 10;
-  --background-secondary: 13 17 23;
-  --background-tertiary: 22 27 34;
-  --foreground: 240 246 252;
-  --foreground-muted: 139 148 158;
-  --foreground-disabled: 72 79 88;
-  --border: 48 54 61;
-  --border-hover: 139 148 158;
-  --profit: 35 134 54;
-  --profit-light: 63 185 80;
-  --profit-dark: 46 160 67;
-  --loss: 218 54 51;
-  --loss-light: 248 81 73;
-  --loss-dark: 248 81 73;
-  --card-bg: rgba(13, 17, 23, 0.7);
-  --input-bg: 2 4 10;
-  --header-bg: 2 4 10;
+  --primary: 41 129 235;
+  --primary-glow: rgba(41, 129, 235, 0.5);
+  --background: 0 0 0;
+  --background-secondary: 12 12 12;
+  --background-tertiary: 20 20 20;
+  --foreground: 255 255 255;
+  --foreground-muted: 156 163 175;
+  --foreground-disabled: 75 85 99;
+  --border: 31 41 55;
+  --border-hover: 75 85 99;
+  --profit: 41 129 235;
+  --profit-light: 96 165 250;
+  --profit-dark: 37 99 235;
+  --loss: 239 68 68;
+  --loss-light: 248 113 113;
+  --loss-dark: 220 38 38;
+  --card-bg: rgba(12, 12, 12, 0.7);
+  --input-bg: 0 0 0;
+  --header-bg: 0 0 0;
   --radius: 12px;
   --glow-strength: 20px;
 }

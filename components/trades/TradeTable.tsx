@@ -391,7 +391,7 @@ export function TradeTable({
                         onClick={() => onPageChange(1)}
                         disabled={page === 1}
                         title="Init Buffer"
-                        className="h-9 w-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-20 transition-all text-foreground group/p"
+                        className="h-9 w-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-blue-600/20 hover:text-blue-400 disabled:opacity-20 transition-all text-white border border-white/5 active:scale-95 group/p"
                     >
                         <ChevronsLeft size={16} className="group-hover/p:-translate-x-0.5 transition-transform" />
                     </button>
@@ -399,22 +399,25 @@ export function TradeTable({
                         onClick={() => onPageChange(page - 1)}
                         disabled={page === 1}
                         title="Prev State"
-                        className="h-9 w-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-20 transition-all text-foreground group/p"
+                        className="h-9 w-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-blue-600/20 hover:text-blue-400 disabled:opacity-20 transition-all text-white border border-white/5 active:scale-95 group/p"
                     >
                         <ChevronLeft size={16} className="group-hover/p:-translate-x-0.5 transition-transform" />
                     </button>
                     
-                    <div className="px-6 flex items-center gap-4">
+                    <div className="px-6 flex items-center gap-6">
                         <div className="flex flex-col items-center">
-                            <span className="text-[8px] font-black text-blue-400 uppercase tracking-widest leading-none mb-1">State_ID</span>
-                            <span className="text-sm font-black text-white font-mono bg-blue-600/20 px-3 py-0.5 rounded border border-blue-500/30">
-                                {page}
-                            </span>
+                            <span className="text-[8px] font-black text-blue-500 uppercase tracking-[0.2em] leading-none mb-1.5">State_ID</span>
+                            <div className="relative">
+                                <div className="absolute inset-0 bg-blue-500/20 blur-md opacity-50" />
+                                <span className="relative text-sm font-black text-white font-mono bg-blue-600/10 px-4 py-1 rounded border border-blue-500/30 min-w-[32px] text-center inline-block">
+                                    {page}
+                                </span>
+                            </div>
                         </div>
-                        <div className="w-px h-6 bg-white/5" />
+                        <div className="w-px h-8 bg-white/10 mx-2" />
                         <div className="flex flex-col items-center">
-                            <span className="text-[8px] font-black text-foreground-disabled uppercase tracking-widest leading-none mb-1">Total_Cyc</span>
-                            <span className="text-[10px] font-bold font-mono text-foreground-disabled">
+                            <span className="text-[8px] font-black text-foreground-disabled uppercase tracking-[0.2em] leading-none mb-1.5">Total_Cyc</span>
+                            <span className="text-[11px] font-bold font-mono text-white/50">
                                 {totalPages}
                             </span>
                         </div>
@@ -424,7 +427,7 @@ export function TradeTable({
                         onClick={() => onPageChange(page + 1)}
                         disabled={page === totalPages}
                         title="Next State"
-                        className="h-9 w-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-20 transition-all text-foreground group/p"
+                        className="h-9 w-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-blue-600/20 hover:text-blue-400 disabled:opacity-20 transition-all text-white border border-white/5 active:scale-95 group/p"
                     >
                         <ChevronRight size={16} className="group-hover/p:translate-x-0.5 transition-transform" />
                     </button>
@@ -432,7 +435,7 @@ export function TradeTable({
                         onClick={() => onPageChange(totalPages)}
                         disabled={page === totalPages}
                         title="Halt Buffer"
-                        className="h-9 w-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-white/10 disabled:opacity-20 transition-all text-foreground group/p"
+                        className="h-9 w-9 flex items-center justify-center rounded-lg bg-white/5 hover:bg-blue-600/20 hover:text-blue-400 disabled:opacity-20 transition-all text-white border border-white/5 active:scale-95 group/p"
                     >
                         <ChevronsRight size={16} className="group-hover/p:translate-x-0.5 transition-transform" />
                     </button>

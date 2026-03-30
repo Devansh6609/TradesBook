@@ -10,6 +10,7 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        primary: "rgb(var(--primary) / <alpha-value>)",
         background: {
           DEFAULT: "rgb(var(--background) / <alpha-value>)",
           secondary: "rgb(var(--background-secondary) / <alpha-value>)",
@@ -31,8 +32,8 @@ const config: Config = {
           dark: "rgb(var(--loss-dark) / <alpha-value>)",
         },
         chart: {
-          line: "#3b82f6",
-          fill: "rgba(59, 130, 246, 0.1)",
+          line: "rgb(var(--primary) / <alpha-value>)",
+          fill: "rgb(var(--primary) / 0.1)",
           grid: "rgb(var(--border) / <alpha-value>)",
           up: "rgb(var(--profit) / <alpha-value>)",
           down: "rgb(var(--loss) / <alpha-value>)",

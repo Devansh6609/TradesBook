@@ -17,40 +17,43 @@ export function NewsTicker() {
     const [news] = useState(initialNews)
 
     return (
-        <div className="fixed bottom-0 left-0 right-0 h-8 bg-[var(--header-bg)] border-t border-[var(--border)] flex items-center z-50">
-            <div className="flex items-center px-4 h-full bg-blue-600 z-10">
-                <Newspaper size={14} className="text-white mr-2" />
-                <span className="text-[10px] font-bold text-white uppercase tracking-wider">Market News</span>
+        <div className="w-full bg-[#0c0c0c] border border-white/5 rounded-2xl h-11 flex items-center overflow-hidden group">
+            <div className="flex items-center px-6 h-full bg-zinc-900 border-r border-white/5 z-10 shadow-[4px_0_24px_rgba(0,0,0,0.5)]">
+                <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse mr-3" />
+                <span className="text-[10px] font-bold text-zinc-400 uppercase tracking-[0.2em] whitespace-nowrap">Market Feed</span>
             </div>
 
-            <div className="flex-1 overflow-hidden relative h-full flex items-center">
-                <div className="animate-marquee whitespace-nowrap flex items-center gap-12 text-xs text-[var(--foreground-muted)]">
+            <div className="flex-1 overflow-hidden relative h-full flex items-center bg-black/20">
+                <div className="animate-marquee whitespace-nowrap flex items-center gap-16 text-[11px] font-medium text-zinc-500">
                     {news.map((item, i) => (
-                        <span key={i} className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                            {item}
-                        </span>
+                        <div key={i} className="flex items-center gap-3 group/item cursor-default">
+                            <span className="text-zinc-700 font-black">/</span>
+                            <span className="hover:text-blue-400 transition-colors uppercase tracking-tight">{item}</span>
+                        </div>
                     ))}
                     {/* Duplicate for seamless loop */}
                     {news.map((item, i) => (
-                        <span key={`dup-${i}`} className="flex items-center gap-2">
-                            <span className="w-1.5 h-1.5 rounded-full bg-blue-500" />
-                            {item}
-                        </span>
+                        <div key={`dup-${i}`} className="flex items-center gap-3 group/item cursor-default">
+                            <span className="text-zinc-700 font-black">/</span>
+                            <span className="hover:text-blue-400 transition-colors uppercase tracking-tight">{item}</span>
+                        </div>
                     ))}
                 </div>
             </div>
 
-            {/* Inline styles for marquee if not in tailwind.config */}
             <style jsx>{`
-        .animate-marquee {
-          animation: marquee 30s linear infinite;
-        }
-        @keyframes marquee {
-          0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
-        }
-      `}</style>
+                .animate-marquee {
+                    animation: marquee 40s linear infinite;
+                }
+                .animate-marquee:hover {
+                    animation-play-state: paused;
+                }
+                @keyframes marquee {
+                    0% { transform: translateX(0); }
+                    100% { transform: translateX(-50%); }
+                }
+            `}</style>
         </div>
     )
 }
+

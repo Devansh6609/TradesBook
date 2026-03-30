@@ -7,7 +7,7 @@ import { TradeFilters, TradeFiltersState } from '@/components/trades/TradeFilter
 import { TradeForm } from '@/components/trades/TradeForm'
 import { ImportModal } from '@/components/trades/ImportModal'
 import { Trade } from '@/types'
-import { Plus, Filter, Link2, AlertCircle, Trash2, Download, Upload, TrendingUp, History } from 'lucide-react'
+import { Plus, Filter, Link2, AlertCircle, Trash2, Download, Upload, TrendingUp, History, RefreshCw } from 'lucide-react'
 import { format } from 'date-fns'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { Modal } from '@/components/ui/Modal'
@@ -221,179 +221,208 @@ export default function TradesPage() {
   const totalTrades = data?.pagination.total || 0
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="flex flex-col h-[calc(100vh-4rem)] bg-[#050505] relative overflow-hidden">
+      {/* Ambient Background Glows */}
+      <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-600/5 blur-[120px] rounded-full pointer-events-none animate-pulse" />
+      <div className="absolute bottom-0 right-1/4 w-[400px] h-[400px] bg-indigo-600/5 blur-[100px] rounded-full pointer-events-none" />
+
       {/* Header Section with Glassmorphism */}
-      <div className="relative group">
-        <div className="absolute -inset-4 bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-blue-500/5 blur-3xl rounded-[3rem] opacity-50 group-hover:opacity-100 transition-opacity duration-1000" />
-        <div className="relative flex flex-col md:flex-row md:items-center md:justify-between gap-6 bg-black/20 border border-white/5 p-8 rounded-3xl backdrop-blur-xl shadow-2xl">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-3">
-              <div className="w-2 h-8 bg-gradient-to-b from-blue-500 to-blue-600 rounded-full" />
-              <h1 className="text-3xl font-black text-white tracking-tight uppercase">Terminal_History</h1>
+      <header className="flex-shrink-0 px-8 py-6 border-b border-white/5 bg-black/40 backdrop-blur-xl sticky top-0 z-50">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+          <div className="flex items-center gap-6">
+            <div className="relative group">
+              <div className="absolute inset-0 bg-blue-500/20 blur-xl opacity-0 group-hover:opacity-100 transition-all duration-500" />
+              <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white shadow-2xl relative border border-white/10 group-hover:scale-105 transition-transform">
+                <History size={24} className="group-hover:rotate-12 transition-transform" />
+              </div>
             </div>
-            <p className="text-[11px] font-bold text-foreground-disabled/60 uppercase tracking-[0.4em] flex items-center gap-2 pl-5">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
-              </span>
-              MT4/MT5 Node Offline — Manual Entry Mode Active
-            </p>
+            <div className="flex flex-col">
+              <h1 className="text-3xl font-black uppercase tracking-tighter text-white leading-none">
+                Terminal_History
+              </h1>
+              <p className="text-[10px] font-bold text-foreground-disabled/60 uppercase tracking-[0.4em] mt-2 flex items-center gap-2">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-blue-500"></span>
+                </span>
+                Monitoring active trade vectors — Live Telemetry
+              </p>
+            </div>
           </div>
 
           <div className="flex flex-wrap items-center gap-3">
-            <button
-              onClick={() =>setIsSyncModalOpen(true)}
-              className="group relative px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-black text-white uppercase tracking-widest hover:bg-white/10 active:scale-95 transition-all overflow-hidden"
-            >
-              <div className="absolute inset-0 bg-gradient-to-r from-blue-500/0 via-blue-500/10 to-blue-500/0 -translate-x-full group-hover:animate-[shimmer_2s_infinite]" />
-              <div className="flex items-center gap-2 relative z-10">
-                <History size={14} className="group-hover:rotate-180 transition-transform duration-500" />
+            <div className="hidden lg:flex items-center gap-2 px-4 py-2 bg-white/5 rounded-xl border border-white/5 backdrop-blur-md">
+              <div className="flex flex-col items-end">
+                <span className="text-[8px] font-black text-foreground-disabled uppercase tracking-widest leading-none">Total_Nodes</span>
+                <span className="text-sm font-black text-white font-mono">{totalTrades}</span>
+              </div>
+              <div className="w-px h-6 bg-white/5 mx-2" />
+              <div className="flex flex-col items-end">
+                <span className="text-[8px] font-black text-green-400 uppercase tracking-widest leading-none">Active_Flow</span>
+                <span className="text-sm font-black text-green-400 font-mono">LIVE</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 bg-white/5 p-1 rounded-2xl border border-white/5 backdrop-blur-md shadow-2xl">
+              <button
+                onClick={() => setIsSyncModalOpen(true)}
+                className="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all active:scale-95 flex items-center gap-2"
+              >
+                <RefreshCw size={14} className="text-blue-400" />
                 Sync History
-              </div>
-            </button>
-
-            <button
-              onClick={() => setIsImportOpen(true)}
-              className="px-6 py-2.5 rounded-xl bg-white/5 border border-white/10 text-xs font-black text-white uppercase tracking-widest hover:bg-white/10 active:scale-95 transition-all flex items-center gap-2"
-            >
-              <Upload size={14} />
-              Import CSV
-            </button>
-
-            <button
-              onClick={() => {
-                setEditingTrade(null)
-                setIsFormOpen(true)
-              }}
-              className="px-8 py-2.5 rounded-xl bg-blue-600 text-xs font-black text-white uppercase tracking-widest hover:bg-blue-500 shadow-[0_0_20px_rgba(37,99,235,0.3)] hover:shadow-[0_0_25px_rgba(37,99,235,0.5)] active:scale-95 transition-all flex items-center gap-2 border border-blue-400/20"
-            >
-              <Plus size={14} strokeWidth={3} />
-              New Position
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content Area */}
-      <div className="relative group/content">
-        {/* Background Glow */}
-        <div className="absolute inset-0 bg-blue-500/[0.01] blur-3xl rounded-[2rem] -z-10" />
-
-        <div className="bg-black/40 border border-white/5 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-md">
-          {/* Toolbar */}
-          <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <div className="flex flex-col">
-                <h2 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Data stream</h2>
-                <div className="flex items-center gap-2">
-                  <span className="text-sm font-bold text-white uppercase tracking-tight">Active Vectors</span>
-                  <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-[10px] font-black text-foreground-disabled">
-                    {totalTrades}
-                  </span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className={cn(
-                  "p-2 rounded-lg border transition-all active:scale-95",
-                  showFilters
-                    ? "bg-blue-600/10 border-blue-500/30 text-blue-400"
-                    : "bg-white/5 border-white/10 text-foreground-disabled hover:text-white hover:bg-white/10"
-                )}
-                title="Filter Matrix"
-              >
-                <Filter size={18} />
               </button>
-              
-              <div className="h-4 w-px bg-white/10 mx-1" />
-
               <button
-                onClick={handleExport}
-                className="p-2 rounded-lg bg-white/5 border border-white/10 text-foreground-disabled hover:text-white hover:bg-white/10 transition-all active:scale-95"
-                title="Export Data"
+                onClick={() => setIsImportOpen(true)}
+                className="h-10 px-4 rounded-xl text-[10px] font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all active:scale-95 flex items-center gap-2"
               >
-                <Download size={18} />
-              </button>
-            </div>
-          </div>
-
-          {/* Expanded Filters */}
-          {showFilters && (
-            <div className="p-6 border-b border-white/5 bg-white/[0.01] animate-in fade-in slide-in-from-top-2 duration-300">
-              <TradeFilters
-                filters={filters}
-                onChange={setFilters}
-                strategies={strategies}
-              />
-            </div>
-          )}
-
-          {/* Trade Matrix (Table) */}
-          <TradeTable
-            trades={trades}
-            loading={isLoading}
-            totalCount={totalTrades}
-            page={page}
-            limit={limit}
-            onPageChange={setPage}
-            onLimitChange={setLimit}
-            selectedTrades={selectedTrades}
-            onSelectTrade={handleSelectTrade}
-            onSelectAll={handleSelectAll}
-            onEdit={handleEdit}
-            onDelete={handleDelete}
-            onSort={handleSort}
-            sortBy={sortBy}
-            sortOrder={sortOrder}
-          />
-        </div>
-      </div>
-
-      {/* Floating Bulk Actions Bar */}
-      {selectedTrades.length > 0 && (
-        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-5 duration-500">
-          <div className="bg-black/80 backdrop-blur-2xl border border-white/10 px-6 py-3 rounded-2xl shadow-[0_20px_50px_rgba(0,0,0,0.5)] flex items-center gap-6">
-            <div className="flex items-center gap-3 pr-6 border-r border-white/10">
-              <div className="w-8 h-8 rounded-lg bg-blue-600 flex items-center justify-center text-white font-black text-xs">
-                {selectedTrades.length}
-              </div>
-              <span className="text-[10px] font-black text-white uppercase tracking-widest">Vectors Selected</span>
-            </div>
-            
-            <div className="flex items-center gap-3">
-              <button
-                onClick={handleExport}
-                className="flex items-center gap-2 text-[10px] font-black text-foreground-disabled hover:text-white uppercase tracking-widest transition-colors"
-                title="Export Selected"
-              >
-                <Download size={14} />
-                Export
+                <Upload size={14} className="text-blue-400" />
+                Import CSV
               </button>
               <button
                 onClick={() => {
-                  // Actually implement bulk delete if needed, for now just show modal for one
-                  toast.error("Bulk Delete sequence pending implementation")
+                  setEditingTrade(null)
+                  setIsFormOpen(true)
                 }}
-                className="flex items-center gap-2 text-[10px] font-black text-loss opacity-80 hover:opacity-100 uppercase tracking-widest transition-opacity"
+                className="h-10 px-6 rounded-xl bg-blue-600 hover:bg-blue-500 text-[10px] font-black uppercase tracking-widest text-white shadow-lg shadow-blue-500/20 transition-all active:scale-95 flex items-center gap-2 border border-blue-400/20"
               >
-                <Trash2 size={14} />
-                Purge_All
+                <Plus size={14} strokeWidth={3} />
+                New Position
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content Area */}
+      <main className="flex-1 overflow-y-auto px-8 py-8 custom-scrollbar relative z-10">
+        <div className="max-w-[1600px] mx-auto space-y-8">
+          {/* Toolbar & Filter Badge */}
+          <div className="bg-black/40 border border-white/5 rounded-2xl overflow-hidden shadow-2xl backdrop-blur-md">
+            <div className="px-6 py-4 border-b border-white/5 bg-white/[0.02] flex items-center justify-between gap-4">
+              <div className="flex items-center gap-6">
+                <div className="flex flex-col">
+                  <h2 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.2em]">Data stream</h2>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-bold text-white uppercase tracking-tight">Active Vectors</span>
+                    <span className="px-1.5 py-0.5 rounded bg-white/5 border border-white/5 text-[10px] font-black text-foreground-disabled">
+                      {totalTrades}
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="h-8 w-px bg-white/5" />
+
+                <div className="flex items-center gap-4">
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className={cn(
+                      "flex items-center gap-2 px-3 py-1.5 rounded-lg border transition-all active:scale-95 text-[10px] font-black uppercase tracking-widest",
+                      showFilters
+                        ? "bg-blue-600/10 border-blue-500/30 text-blue-400"
+                        : "bg-white/5 border-white/10 text-foreground-disabled hover:text-white hover:bg-white/10"
+                    )}
+                  >
+                    <Filter size={14} />
+                    Filter Matrix
+                    {showFilters && <span className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-pulse ml-1" />}
+                  </button>
+
+                  <button
+                    onClick={handleExport}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-[10px] font-black text-foreground-disabled hover:text-white hover:bg-white/10 transition-all active:scale-95 uppercase tracking-widest"
+                  >
+                    <Download size={14} />
+                    Export Data
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 text-[10px] font-black text-foreground-disabled uppercase tracking-widest">
+                <span className="flex h-1.5 w-1.5 rounded-full bg-green-500" />
+                Buffer Synchronized
+              </div>
+            </div>
+
+            {/* Expanded Filters */}
+            {showFilters && (
+              <div className="p-8 border-b border-white/5 bg-white/[0.01] animate-in fade-in slide-in-from-top-4 duration-500">
+                <TradeFilters
+                  filters={filters}
+                  onChange={setFilters}
+                  strategies={strategies}
+                />
+              </div>
+            )}
+
+            {/* Trade Matrix (Table) */}
+            <TradeTable
+              trades={trades}
+              loading={isLoading}
+              totalCount={totalTrades}
+              page={page}
+              limit={limit}
+              onPageChange={setPage}
+              onLimitChange={setLimit}
+              selectedTrades={selectedTrades}
+              onSelectTrade={handleSelectTrade}
+              onSelectAll={handleSelectAll}
+              onEdit={handleEdit}
+              onDelete={handleDelete}
+              onSort={handleSort}
+              sortBy={sortBy}
+              sortOrder={sortOrder}
+            />
+          </div>
+        </div>
+      </main>
+
+      {/* Floating Bulk Actions Bar */}
+      {selectedTrades.length > 0 && (
+        <div className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50 animate-in slide-in-from-bottom-10 duration-700 ease-out">
+          <div className="bg-black/80 backdrop-blur-3xl border border-white/10 px-8 py-4 rounded-2xl shadow-[0_32px_64px_-12px_rgba(0,0,0,0.8)] flex items-center gap-8 ring-1 ring-white/10">
+            <div className="flex items-center gap-4 pr-8 border-r border-white/10">
+              <div className="relative">
+                <div className="absolute inset-0 bg-blue-500 blur-md opacity-40 animate-pulse" />
+                <div className="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white font-black text-sm relative border border-white/20">
+                  {selectedTrades.length}
+                </div>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-[10px] font-black text-white uppercase tracking-[0.2em]">Vectors Isolated</span>
+                <span className="text-[8px] font-bold text-foreground-disabled uppercase tracking-widest mt-0.5">Ready for batch process</span>
+              </div>
+            </div>
+            
+            <div className="flex items-center gap-6">
+              <button
+                onClick={handleExport}
+                className="flex items-center gap-2 text-[10px] font-black text-white hover:text-blue-400 uppercase tracking-[0.2em] transition-colors group"
+              >
+                <Download size={14} className="group-hover:translate-y-0.5 transition-transform" />
+                Bulk_Export
               </button>
               <button
-                onClick={() => setSelectedTrades([])}
-                className="ml-2 text-[10px] font-black text-foreground-disabled hover:text-white uppercase tracking-widest opacity-40 hover:opacity-100"
+                onClick={() => {
+                  toast.error("Bulk Delete sequence pending implementation")
+                }}
+                className="flex items-center gap-2 text-[10px] font-black text-red-500 opacity-80 hover:opacity-100 uppercase tracking-[0.2em] transition-opacity group"
               >
-                Dismiss
+                <Trash2 size={14} className="group-hover:scale-110 transition-transform" />
+                Purge_All
+              </button>
+              <div className="w-px h-6 bg-white/10 mx-2" />
+              <button
+                onClick={() => setSelectedTrades([])}
+                className="text-[10px] font-black text-foreground-disabled hover:text-white uppercase tracking-[0.2em] transition-colors"
+              >
+                Cancel_Ops
               </button>
             </div>
           </div>
         </div>
       )}
 
-      {/* Trade Form Modal */}
+      {/* Modals with Glassmorphism Layering Handled in Components */}
       <TradeForm
         isOpen={isFormOpen}
         onClose={() => {
@@ -407,43 +436,48 @@ export default function TradesPage() {
         loading={saveTradeMutation.isPending}
       />
 
-      {/* Import Modal */}
       <ImportModal
         isOpen={isImportOpen}
         onClose={() => setIsImportOpen(false)}
         onImport={handleImportSuccess}
       />
 
-      {/* Delete Confirmation Modal */}
       <Modal
         isOpen={!!deletingTrade}
         onClose={() => setDeletingTrade(null)}
-        title="Delete Trade"
+        title="Vector_Purge_Confirmation"
         size="sm"
       >
-        <div className="space-y-4">
-          <p className="text-[var(--foreground-muted)]">
-            Are you sure you want to delete this trade? This action cannot be undone.
-          </p>
-          <div className="flex justify-end gap-3">
-            <Button
-              variant="secondary"
-              onClick={() => setDeletingTrade(null)}
-              disabled={deleteTradeMutation.isPending}
-            >
-              Cancel
-            </Button>
-            <Button
-              variant="danger"
-              onClick={confirmDelete}
-              isLoading={deleteTradeMutation.isPending}
-            >
-              Delete
-            </Button>
-          </div>
+        <div className="space-y-6">
+            <div className="p-4 rounded-xl bg-red-500/5 border border-red-500/10 flex items-start gap-4">
+                <AlertCircle className="text-red-500 flex-shrink-0 mt-0.5" size={18} />
+                <div className="space-y-1">
+                    <p className="text-xs font-black text-white uppercase tracking-widest">Permanent Deletion Warning</p>
+                    <p className="text-[10px] font-medium text-foreground-disabled uppercase leading-relaxed">
+                        Purging vector <span className="text-white font-mono">{deletingTrade?.symbol}</span> will permanently remove all telemetry and journal data from the local buffer.
+                    </p>
+                </div>
+            </div>
+            
+            <div className="flex justify-end gap-3">
+                <Button
+                    variant="ghost"
+                    className="text-[10px] font-black uppercase tracking-widest border border-white/5 hover:bg-white/5"
+                    onClick={() => setDeletingTrade(null)}
+                >
+                    Abort_Process
+                </Button>
+                <Button
+                    className="bg-red-600 hover:bg-red-500 text-[10px] font-black uppercase tracking-widest shadow-lg shadow-red-500/20"
+                    onClick={confirmDelete}
+                    isLoading={deleteTradeMutation.isPending}
+                >
+                    Confirm_Purge
+                </Button>
+            </div>
         </div>
       </Modal>
-      {/* History Sync Modal */}
+
       <HistorySyncModal
         isOpen={isSyncModalOpen}
         onClose={() => setIsSyncModalOpen(false)}

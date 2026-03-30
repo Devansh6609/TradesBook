@@ -196,7 +196,7 @@ export default function Sidebar() {
       {/* Sidebar */}
       <aside
         className={cn(
-          'fixed left-0 top-0 z-40 h-screen w-64 bg-background-secondary/60 backdrop-blur-xl border-r border-white/5 transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] flex flex-col shadow-[20px_0_40px_rgba(0,0,0,0.5)]',
+          'fixed left-0 top-0 z-40 h-screen w-64 bg-[#0a0a0a] border-r border-white/5 transition-transform duration-500 ease-[cubic-bezier(0.23,1,0.32,1)] flex flex-col',
           isMobileMenuOpen
             ? 'translate-x-0'
             : '-translate-x-full lg:translate-x-0'
@@ -226,34 +226,34 @@ export default function Sidebar() {
           </Link>
         </div>
 
-        {/* User Profile - Premium Compact */}
+        {/* User Profile - Matching Screenshot */}
         <div className="px-4 py-6">
-          <div className="group flex items-center gap-3 p-3 rounded-2xl bg-[#121212] border border-white/5 hover:border-white/10 transition-all duration-300 overflow-hidden relative">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-700 to-zinc-900 flex items-center justify-center flex-shrink-0 border border-white/10">
+          <div className="group flex items-center gap-3 p-3 rounded-xl bg-[#121212] border border-white/5 transition-all duration-300 relative">
+            <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center flex-shrink-0 border border-white/10">
               {sessionUser?.image ? (
                 <img
                   src={sessionUser.image}
                   alt={sessionUser.name || 'User'}
-                  className="w-10 h-10 rounded-xl"
+                  className="w-10 h-10 rounded-full"
                 />
               ) : (
                 <User size={18} className="text-zinc-400" />
               )}
             </div>
             <div className="flex-1 min-w-0">
-               <p className="text-[11px] font-black text-white truncate uppercase tracking-wider leading-none">
+               <p className="text-xs font-bold text-white truncate leading-none">
                   {sessionUser?.name || 'Devansh Patel'}
                 </p>
-                <div className="flex items-center gap-1.5 mt-1">
-                    <span className="text-[9px] font-bold text-zinc-500 truncate lowercase tracking-tight">
+                <div className="flex items-center gap-1 mt-1">
+                    <span className="text-[10px] text-zinc-500 truncate lowercase">
                         {sessionUser?.email || 'pateldevansh155@gmail.com'}
                     </span>
-                    <ChevronDown size={10} className="text-zinc-600 ml-auto group-hover:text-zinc-400 transition-colors" />
                 </div>
             </div>
             <div className="absolute right-3 top-3">
-               <span className="px-1 py-0.5 bg-blue-500/10 text-blue-400 text-[7px] font-black rounded border border-blue-500/20 tracking-widest uppercase">FREE</span>
+               <span className="px-1.5 py-0.5 bg-blue-500/20 text-blue-400 text-[8px] font-bold rounded uppercase tracking-wider">FREE</span>
             </div>
+            <ChevronDown size={12} className="text-zinc-600 ml-1 group-hover:text-zinc-400" />
           </div>
         </div>
 

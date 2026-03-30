@@ -50,29 +50,28 @@ export default function Header({ onMenuClick }: HeaderProps) {
         {/* Left side - Context Info */}
         <div className="flex items-center gap-6">
           <div className="hidden lg:flex flex-col">
-            <h1 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] leading-none mb-1">{pageInfo.title}_Vector</h1>
-            <span className="text-[9px] font-bold text-foreground-disabled uppercase tracking-widest">{currentDate}</span>
+            <h1 className="text-sm font-bold text-white leading-none mb-1">Dashboard</h1>
+            <span className="text-[10px] font-medium text-zinc-500">{currentDate}</span>
           </div>
           <div className="h-8 w-px bg-white/5 hidden lg:block" />
         </div>
 
-        {/* Center - Search Bar */}
-        <div className="flex-1 max-w-xl mx-12 hidden md:block">
-          <div className="relative group">
-            <div className="absolute inset-0 bg-blue-500/5 blur-xl opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-            <Search size={14} className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-disabled group-hover:text-blue-400 transition-colors z-10" />
+    // Center - Search Bar
+    <div className="flex-1 max-w-md mx-8 hidden md:block">
+        <div className="relative group">
+            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-zinc-500 z-10" />
             <input
-              type="text"
-              placeholder="Search Global Market Vectors..."
-              className="w-full bg-black/40 backdrop-blur-md border border-white/5 rounded-2xl pl-11 pr-16 py-2.5 text-[11px] text-white placeholder:text-foreground-disabled/30 focus:outline-none focus:border-blue-500/30 focus:ring-4 focus:ring-blue-500/5 transition-all relative z-1"
+                type="text"
+                placeholder="Search..."
+                className="w-full bg-[#121212] border border-white/5 rounded-xl pl-10 pr-16 py-2 text-[12px] text-white placeholder:text-zinc-600 focus:outline-none focus:border-blue-500/30 transition-all relative z-1"
             />
-            <div className="absolute right-4 top-1/2 -translate-y-1/2 px-2 py-0.5 bg-white/5 border border-white/10 rounded-lg text-[8px] font-black text-foreground-disabled uppercase tracking-widest flex items-center gap-1 z-10 group-hover:border-blue-500/30 transition-colors">
-              <span className="opacity-50">CTRL</span>
-              <span className="text-blue-500">+</span>
-              <span>K</span>
+            <div className="absolute right-3.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 bg-zinc-800/50 border border-white/5 rounded text-[9px] font-medium text-zinc-500 flex items-center gap-1 z-10">
+                <span>Ctrl</span>
+                <span className="text-zinc-600">+</span>
+                <span>K</span>
             </div>
-          </div>
         </div>
+    </div>
 
         {/* Right side - Actions */}
         <div className="flex items-center gap-3">

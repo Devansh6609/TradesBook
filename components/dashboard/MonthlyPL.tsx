@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, Fragment } from 'react'
 import { 
   format, 
   startOfMonth, 
@@ -37,105 +37,111 @@ export default function MonthlyPL({ data = [], className }: MonthlyPLProps) {
   const startDay = getDay(monthStart)
   const prefixDays = Array.from({ length: (startDay === 0 ? 6 : startDay - 1) })
 
-  const getPLForDay = (day: Date) => {
+  // Calculate weeks for the 8-column grid (7 days + 1 weekly stat)
+  const weeks: (Date | null)[][] = []
+  let currentDays = [...prefixDays.map(() => null), ...days]
+  
+  while (currentDays.length > 0) {
+    weeks.push(currentDays.splice(0, 7))
+  }
+
+  const getPLForDay = (day: Date | null) => {
+    if (!day) return null
     const dateStr = format(day, 'yyyy-MM-dd')
     return data.find(d => d.date === dateStr)
   }
 
+  const calculateWeeklyPL = (week: (Date | null)[]) => {
+    return week.reduce((acc, day) => {
+      const pl = getPLForDay(day)
+      return acc + (pl?.amount || 0)
+    }, 0)
+  }
+
+  const totalMonthlyPL = data.reduce((acc, d) => acc + d.amount, 0)
+
   return (
-    <div className={cn("bg-black/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-8 h-full flex flex-col group relative overflow-hidden transition-all duration-500 hover:border-white/10", className)}>
-      {/* Background Ambient Glow */}
-      <div className="absolute top-0 right-0 w-48 h-48 bg-blue-500/5 blur-[80px] rounded-full pointer-events-none transition-all duration-1000 group-hover:bg-blue-500/10" />
-      
-      <div className="flex items-center justify-between mb-8 relative z-10">
-        <div className="flex items-center gap-3">
-          <div className="w-1.5 h-6 bg-blue-600 rounded-full shadow-[0_0_10px_rgba(37,99,235,0.4)]" />
-          <div>
-            <h3 className="text-[10px] font-black text-blue-500 uppercase tracking-[0.3em] leading-none mb-1">Yield_Matrix</h3>
-            <p className="text-[8px] font-bold text-foreground-disabled uppercase tracking-widest">Monthly_Performance_Log</p>
-          </div>
+    <div className={cn("bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 h-full flex flex-col group transition-all duration-300", className)}>
+      <div className="flex items-center justify-between mb-8">
+        <div>
+           <h3 className="text-sm font-bold text-white tracking-tight">Monthly P&L</h3>
         </div>
-        <div className="flex items-center gap-3">
-          <span className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
-            {format(currentMonth, 'MMM yyyy')}
-          </span>
-          <div className="flex gap-1">
-            <button
-              onClick={() => setCurrentMonth(subMonths(currentMonth, 1))}
-              className="p-1.5 hover:bg-white/5 rounded-md border border-white/5 transition-all text-zinc-500 hover:text-white"
-              aria-label="Previous month"
-            >
-              <ChevronLeft size={14} />
-            </button>
-            <button
-              onClick={() => setCurrentMonth(addMonths(currentMonth, 1))}
-              className="p-1.5 hover:bg-white/5 rounded-md border border-white/5 transition-all text-zinc-500 hover:text-white"
-              aria-label="Next month"
-            >
-              <ChevronRight size={14} />
-            </button>
-          </div>
+        <div className="text-right">
+           <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-wider">
+             Monthly: <span className="text-blue-400">+{totalMonthlyPL.toLocaleString(undefined, { minimumFractionDigits: 2 })}</span> {format(currentMonth, 'MMMM yyyy')}
+           </p>
         </div>
       </div>
 
-      <div className="grid grid-cols-7 gap-1.5 flex-1">
-        {WEEKDAYS.map((day, i) => (
-          <div key={i} className="text-center text-[9px] font-bold text-zinc-600 pb-2 uppercase tracking-tighter">
+      <div className="flex-1 grid grid-cols-8 gap-1">
+        {/* Header */}
+        {['M', 'T', 'W', 'T', 'F', 'S', 'S', ''].map((day, i) => (
+          <div key={i} className="text-center text-[10px] font-bold text-zinc-600 pb-2">
             {day}
           </div>
         ))}
-        
-        {prefixDays.map((_, i) => (
-          <div key={`prefix-${i}`} className="aspect-square rounded-md bg-transparent" />
-        ))}
 
-        {days.map((day, i) => {
-          const pl = getPLForDay(day)
-          const isCurrentToday = isToday(day)
-          
-          return (
-            <div 
-              key={i} 
-              className={cn(
-                "aspect-square rounded-md flex flex-col items-center justify-center relative transition-all border border-white/[0.02]",
-                pl && pl.amount > 0 ? "bg-green-500/10 text-green-500" : 
-                pl && pl.amount < 0 ? "bg-red-500/10 text-red-500" : 
-                "bg-zinc-900/30",
-                isCurrentToday && "border-blue-500/50 bg-blue-500/5"
-              )}
-            >
-              <span className={cn(
-                "text-[9px] font-bold",
-                isCurrentToday ? "text-blue-400" : "text-zinc-600"
-              )}>
-                {format(day, 'd')}
-              </span>
-              {pl && (
-                <span className="text-[8px] font-black mt-0.5 leading-none">
-                  {pl.amount > 0 ? '+' : ''}{Math.round(pl.amount)}
+        {weeks.map((week, weekIndex) => (
+          <Fragment key={weekIndex}>
+            {week.map((day, dayIndex) => {
+               const pl = getPLForDay(day)
+               const isCurrentToday = day ? isToday(day) : false
+               
+               return (
+                 <div 
+                   key={`${weekIndex}-${dayIndex}`} 
+                   className={cn(
+                     "aspect-[1.1] rounded-lg flex flex-col p-2 relative transition-all border border-transparent",
+                     day ? "bg-[#121212]" : "bg-transparent",
+                     isCurrentToday && "border-blue-500/30"
+                   )}
+                 >
+                   {day && (
+                     <>
+                       <span className={cn(
+                         "text-[10px] font-bold leading-none mb-1",
+                         isCurrentToday ? "text-blue-400" : "text-zinc-500"
+                       )}>
+                         {format(day, 'd')}
+                       </span>
+                       {pl && (
+                         <span className={cn(
+                             "text-[9px] font-bold mt-auto text-center leading-tight",
+                             pl.amount > 0 ? "text-blue-400" : "text-red-500"
+                         )}>
+                           +{Math.round(pl.amount)}
+                         </span>
+                       )}
+                     </>
+                   )}
+                 </div>
+               )
+            })}
+            {/* Weekly Statistics Column */}
+            <div className="aspect-[1.1] rounded-lg bg-[#0a0a0a] border border-white/5 flex flex-col items-center justify-center p-1">
+                <span className="text-[8px] font-bold text-zinc-600 uppercase tracking-tighter">Weekly</span>
+                <span className={cn(
+                    "text-[10px] font-bold mt-1",
+                    calculateWeeklyPL(week) >= 0 ? "text-blue-400" : "text-red-500"
+                )}>
+                    {calculateWeeklyPL(week) >= 0 ? '+' : ''}{Math.round(calculateWeeklyPL(week))}
                 </span>
-              )}
+                <span className="text-[7px] font-medium text-zinc-700 mt-0.5 leading-none text-center">Traded D...</span>
             </div>
-          )
-        })}
+          </Fragment>
+        ))}
       </div>
 
-      <div className="mt-8 pt-4 border-t border-white/5 flex justify-between items-center opacity-60">
+      <div className="mt-6 flex items-center gap-4 text-[10px] font-bold text-zinc-600">
         <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-green-500/20 border border-green-500/50" />
-          <span className="text-[8px] text-zinc-500 uppercase tracking-widest font-bold">Gain</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-blue-500" />
+          <span>Profit</span>
         </div>
         <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-red-500/20 border border-red-500/50" />
-          <span className="text-[8px] text-zinc-500 uppercase tracking-widest font-bold">Loss</span>
-        </div>
-        <div className="flex items-center gap-1.5">
-          <div className="w-2 h-2 rounded-full bg-zinc-800" />
-          <span className="text-[8px] text-zinc-500 uppercase tracking-widest font-bold">Flat</span>
+          <div className="w-1.5 h-1.5 rounded-full bg-red-500" />
+          <span>Loss</span>
         </div>
       </div>
-      {/* Ambient Glow */}
-      <div className="absolute -bottom-8 -right-8 w-24 h-24 bg-blue-500/5 rounded-full blur-2xl pointer-events-none" />
     </div>
   )
 }

@@ -32,33 +32,22 @@ export default function DashboardPage() {
 
   return (
     <div className="pb-12 space-y-10 max-w-[1700px] mx-auto relative px-4 lg:px-8">
-      {/* Dynamic Background Accents */}
-      <div className="absolute -top-40 -left-64 w-[600px] h-[600px] bg-blue-600/10 rounded-full blur-[150px] pointer-events-none opacity-50 animate-pulse-slow" />
-      <div className="absolute top-[20%] right-[-100px] w-[500px] h-[500px] bg-indigo-600/5 rounded-full blur-[120px] pointer-events-none opacity-40" />
-      <div className="absolute bottom-[10%] left-[10%] w-[400px] h-[400px] bg-purple-600/5 rounded-full blur-[100px] pointer-events-none opacity-30" />
+      {/* Background Accents */}
+      <div className="absolute -top-40 -left-64 w-[600px] h-[600px] bg-blue-600/[0.03] rounded-full blur-[150px] pointer-events-none" />
 
       {isSyncing && (
-        <div className="bg-blue-500/10 border border-blue-500/20 backdrop-blur-2xl rounded-[1.5rem] p-5 flex items-center justify-between group overflow-hidden relative shadow-[0_0_40px_rgba(59,130,246,0.1)]">
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500/10 via-transparent to-transparent animate-shimmer" />
-          <div className="flex items-center gap-5 relative z-10">
-            <div className="h-12 w-12 rounded-2xl bg-blue-600/20 flex items-center justify-center border border-blue-500/30 shadow-inner">
-                <Clock className="text-blue-400 animate-spin-slow" size={24} />
-            </div>
-            <div>
-                <h4 className="text-[11px] font-black text-blue-400 uppercase tracking-[0.3em] leading-none mb-2">Protocol_Live_Sync</h4>
-                <p className="text-sm font-bold text-foreground/80 tracking-tight">
-                    Establishing high-fidelity bridge to MT5 Terminal. Data stream is currently active.
-                </p>
-            </div>
-          </div>
-          <div className="hidden lg:flex items-center gap-2.5 px-4 py-2 rounded-xl bg-black/40 border border-white/10 text-[10px] font-black uppercase tracking-[0.2em] text-blue-400/60 shadow-lg">
-              Encryption: AES-256-GCM
+        <div className="bg-blue-500/5 border border-white/5 rounded-2xl p-4 flex items-center justify-between group overflow-hidden relative">
+          <div className="flex items-center gap-4 relative z-10">
+            <Clock className="text-blue-500/50 animate-spin-slow" size={20} />
+            <p className="text-[11px] font-bold text-zinc-400 uppercase tracking-widest">
+              Live Terminal Sync Active <span className="text-zinc-600 mx-2">|</span> Bridge: AES-256-GCM
+            </p>
           </div>
         </div>
       )}
 
       {/* Primary Stat Matrix */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 animate-fade-up">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard
           label="Operational Capital"
           value={currentBalance}
@@ -74,7 +63,7 @@ export default function DashboardPage() {
           isCurrency
           subLabel={`${totalTrades} EXECUTIONS`}
           icon={DollarSign}
-          theme={totalPnl >= 0 ? 'green' : 'red'}
+          theme={totalPnl >= 0 ? 'blue' : 'red'}
           loading={isLiveLoading && !liveData}
         />
         <StatCard
@@ -86,50 +75,28 @@ export default function DashboardPage() {
           theme="blue"
           loading={isLiveLoading && !liveData}
         />
-        <StatCard
-          label="Floating Delta"
-          value={unrealizedPnL}
-          isCurrency
-          subLabel={`${openTrades} ACTIVE_VECTORS`}
-          icon={Clock}
-          theme={unrealizedPnL >= 0 ? 'green' : 'red'}
-          loading={isLiveLoading && !liveData}
-        />
-        <StatCard
-          label="Success Index"
-          value={winRate}
-          isPercentage
-          subLabel="WIN_PROBABILITY"
-          icon={Target}
-          theme="purple"
-          loading={isLiveLoading && !liveData}
-        />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
         {/* Main Intelligence Grid */}
-        <div className="lg:col-span-8 space-y-10 animate-fade-up delay-100">
-           <div className="h-full min-h-[500px]">
-             <PerformanceChart />
-           </div>
+        <div className="lg:col-span-8 space-y-6">
+           <PerformanceChart />
            
-           <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
+           <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
              <OpenPositions />
              <RecentActivity />
            </div>
         </div>
 
         {/* Sidebar Intelligence */}
-        <div className="lg:col-span-4 space-y-10 animate-fade-up delay-200">
-          <div className="bg-black/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-1 overflow-hidden">
-            <MonthlyPL />
-          </div>
-          <TopPerformers />
+        <div className="lg:col-span-4 space-y-6">
+          <MonthlyPL />
           <QuickStats data={liveData} />
+          <TopPerformers />
         </div>
       </div>
 
-      <div className="pt-8 border-t border-white/5 relative z-10">
+      <div className="pt-6 border-t border-white/5 relative z-10">
         <NewsTicker />
       </div>
     </div>

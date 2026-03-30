@@ -78,7 +78,7 @@ export function StatCard({
     value,
     subLabel,
     icon: Icon,
-    theme = 'default',
+    theme = 'blue',
     className,
     loading = false,
     isCurrency = false,
@@ -87,76 +87,61 @@ export function StatCard({
     const numericValue = typeof value === 'number' ? value : parseFloat(String(value).replace(/[^0-9.-]+/g, ""))
     const isNegative = numericValue < 0
 
-    const styles = themeStyles[theme]
+    const styles = themeStyles[theme] || themeStyles.blue
 
     return (
         <div className={cn(
-            "relative overflow-hidden bg-black/40 backdrop-blur-xl border border-white/5 rounded-[1.5rem] p-6 transition-all duration-500 group cursor-default",
-            styles.border,
+            "relative overflow-hidden bg-[#0c0c0c] border border-white/5 rounded-2xl p-6 transition-all duration-300 group cursor-default",
             className
         )}>
-            {/* Ambient Background Glow */}
-            <div className={cn(
-                "absolute -inset-0.5 bg-gradient-to-br opacity-0 group-hover:opacity-10 transition-opacity duration-700",
-                styles.glow
-            )} />
-
-            <div className="flex items-center justify-between mb-6 relative z-10">
-                <div className="flex items-center gap-4">
-                    <div className={cn(
-                        "w-10 h-10 rounded-xl bg-zinc-900/50 border border-white/5 flex items-center justify-center transition-all duration-500 group-hover:scale-110",
-                        styles.iconColor
-                    )}>
-                        <Icon size={18} strokeWidth={2.5} className="group-hover:rotate-6 transition-transform" />
-                    </div>
-                    <div className="flex flex-col">
-                        <span className="text-[10px] font-black text-foreground-disabled/60 uppercase tracking-[0.2em] leading-none mb-1">{label}</span>
-                        <div className="h-0.5 w-4 bg-blue-500/30 rounded-full group-hover:w-8 transition-all" />
-                    </div>
+            <div className="flex items-start justify-between mb-4">
+                <div className={cn(
+                    "w-10 h-10 rounded-full flex items-center justify-center transition-all duration-500",
+                    styles.iconBg,
+                    styles.iconColor
+                )}>
+                    <Icon size={18} strokeWidth={2} />
                 </div>
+                {theme === 'blue' && (
+                    <div className="px-2 py-0.5 bg-blue-500/10 border border-blue-500/20 rounded-full">
+                        <span className="text-[10px] font-bold text-blue-400 uppercase tracking-wider">Total</span>
+                    </div>
+                )}
             </div>
 
-            <div className="space-y-4 relative z-10">
+            <div className="space-y-1 mb-6">
+                <span className="text-[11px] font-bold text-zinc-500 uppercase tracking-wider">{label}</span>
                 {loading ? (
-                    <div className="h-10 w-32 bg-white/5 animate-pulse rounded-lg" />
+                    <div className="h-8 w-32 bg-white/5 animate-pulse rounded" />
                 ) : (
-                    <div className="flex flex-col gap-1">
-                        <div className="flex items-baseline gap-1.5">
-                            <span className={cn(
-                                "text-3xl font-black tracking-tighter transition-colors duration-500 font-mono",
-                                isNegative ? "text-red-500" : "text-white"
-                            )}>
-                                {isCurrency && (numericValue < 0 ? '-$' : '$')}
-                                <NumberTicker 
-                                    value={Math.abs(numericValue)} 
-                                    decimalPlaces={2}
-                                />
-                                {isPercentage && '%'}
-                            </span>
-                        </div>
+                    <div className="flex flex-col">
+                        <span className={cn(
+                            "text-2xl font-bold tracking-tight",
+                            isNegative ? "text-red-500" : "text-white"
+                        )}>
+                            {isCurrency && (numericValue < 0 ? '-$' : '+$')}
+                            {Math.abs(numericValue).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            {isPercentage && '%'}
+                        </span>
+                        
                         {isPercentage && (
-                            <div className="w-full h-1 bg-white/5 rounded-full overflow-hidden mt-1 border border-white/5">
+                            <div className="w-full h-1.5 bg-zinc-900 rounded-full overflow-hidden mt-3">
                                 <div 
-                                    className={cn("h-full transition-all duration-1000 ease-out", styles.iconBg.replace('/10', ''))}
+                                    className="h-full bg-blue-500 transition-all duration-1000 ease-out"
                                     style={{ width: `${Math.min(Math.max(numericValue, 0), 100)}%` }}
                                 />
                             </div>
                         )}
                     </div>
                 )}
-                {subLabel && (
-                    <div className="flex items-center gap-2 pt-1">
-                        <div className="w-0.5 h-3 rounded-full bg-blue-500/50 group-hover:bg-blue-500 transition-colors" />
-                        <span className="text-[9px] text-zinc-500 font-black uppercase tracking-[0.3em] group-hover:text-zinc-400 transition-colors">{subLabel}</span>
-                    </div>
-                )}
             </div>
 
-            {/* Subtle Corner Glow */}
-            <div className={cn(
-                "absolute -top-12 -right-12 w-32 h-32 blur-3xl rounded-full transition-all duration-1000 opacity-20 group-hover:opacity-40",
-                `bg-${styles.accent}`
-            )} />
+            {subLabel && (
+                <div className="flex items-center gap-1 text-[11px] font-bold text-blue-500 hover:text-blue-400 transition-colors cursor-pointer w-fit group/link">
+                   <span className="opacity-0 -translate-x-1 group-hover:opacity-100 group-hover:translate-x-0 transition-all">→</span>
+                   <span>{subLabel}</span>
+                </div>
+            )}
         </div>
     )
 }

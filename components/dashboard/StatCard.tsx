@@ -1,3 +1,4 @@
+'use client'
 import { LucideIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import NumberTicker from '@/components/ui/NumberTicker'

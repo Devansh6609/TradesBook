@@ -1,3 +1,6 @@
+'use client'
+export const dynamic = 'force-dynamic'
+
 import { useQuery } from '@tanstack/react-query'
 import { DollarSign, Clock, CheckCircle, Target, Wallet } from 'lucide-react'
 import { api } from '@/lib/apiClient'

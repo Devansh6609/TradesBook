@@ -1,3 +1,4 @@
+'use client'
 import { StatCard } from './StatCard'
 import { TrendingUp, TrendingDown, Trophy, AlertTriangle } from 'lucide-react'
 import { cn } from '@/lib/utils'

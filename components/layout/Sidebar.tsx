@@ -225,34 +225,26 @@ export default function Sidebar() {
             </div>
           </Link>
         </div>
-
         {/* User Profile - Premium Compact */}
-        <div className="px-4 py-8">
-          <div className="group flex items-center gap-3 p-4 rounded-3xl bg-[#0a0a0a] border border-white/5 hover:border-white/10 transition-all duration-500 overflow-hidden relative shadow-[0_4px_24px_rgba(0,0,0,0.5)]">
-            <div className="w-11 h-11 rounded-2xl bg-gradient-to-br from-zinc-800 to-zinc-950 flex items-center justify-center flex-shrink-0 border border-white/10 shadow-inner overflow-hidden">
-              {sessionUser?.image ? (
-                <img
-                  src={sessionUser.image}
-                  alt={sessionUser.name || 'User'}
-                  className="w-full h-full object-cover"
-                />
-              ) : (
-                <User size={20} className="text-zinc-500" />
-              )}
-            </div>
-            <div className="flex-1 min-w-0">
-               <p className="text-[12px] font-black text-white truncate uppercase tracking-widest leading-none mb-1.5">
-                  {sessionUser?.name || 'Devansh Patel'}
-                </p>
-                <div className="flex items-center gap-2">
-                    <span className="text-[10px] font-bold text-zinc-600 truncate lowercase tracking-tight opacity-80">
-                        {sessionUser?.email || 'pateldevansh155@gmail.com'}
-                    </span>
-                    <ChevronDown size={11} className="text-zinc-700 ml-auto group-hover:text-zinc-400 transition-all duration-300 group-hover:translate-y-0.5" />
+        <div className="px-4 py-6">
+          <div className="group/user p-3 rounded-2xl transition-all duration-500 bg-zinc-900/30 border border-white/5 hover:border-blue-500/20 relative">
+            <div className="flex items-center gap-3">
+              <div className="relative">
+                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white text-xs font-black shadow-lg">
+                  PB
                 </div>
-            </div>
-            <div className="absolute right-4 top-4">
-               <span className="px-2 py-1 bg-blue-600/10 text-blue-400 text-[8px] font-black rounded-lg border border-blue-500/20 tracking-widest uppercase shadow-[0_0_10px_rgba(59,130,246,0.1)]">FREE</span>
+                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[#090909]" />
+              </div>
+              <div className="flex flex-col min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="text-[11px] font-black text-white tracking-widest uppercase truncate">Patel</span>
+                  <span className="text-[7px] font-black px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">FREE</span>
+                </div>
+                <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-tighter truncate">Trader_ID_042</span>
+              </div>
+              <div className="ml-auto opacity-0 group-hover/user:opacity-100 transition-opacity">
+                <Settings size={12} className="text-zinc-600 hover:text-blue-400 cursor-pointer" />
+              </div>
             </div>
           </div>
         </div>

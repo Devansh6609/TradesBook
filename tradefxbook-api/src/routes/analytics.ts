@@ -347,7 +347,7 @@ analytics.get('/', async (c) => {
     );
 
     // 4. Get Daily P&L for Calendar/Chart
-    const dailyRowsRaw = await queryMany<{ date: string; pnl: number; trades: number }>(
+    const dailyRows = await queryMany<{ date: string; pnl: number; trades: number }>(
       c.env.DB,
       `SELECT
          strftime('%Y-%m-%d', datetime(exitDate, 'unixepoch')) as date,
@@ -360,20 +360,9 @@ analytics.get('/', async (c) => {
       bindings,
     );
 
-    // Calculate cumulative P&L for the chart
-    let cumulative = 0;
-    const dailyRows = dailyRowsRaw.map((r) => {
-      cumulative += r.pnl;
-      return {
-        ...r,
-        pnl: r.pnl.toFixed(2),
-        cumulativePnl: cumulative.toFixed(2)
-      };
-    });
-
     // 5. Get Equity Curve (Cumulative P&L)
     let runningEquity = initialBalance;
-    const equityCurve = dailyRowsRaw.map((r) => {
+    const equityCurve = dailyRows.map((r) => {
       runningEquity += r.pnl;
       return {
         date: r.date,

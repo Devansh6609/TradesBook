@@ -11,17 +11,17 @@ import {
 } from 'recharts'
 
 const PERIODS = [
-    { label: '7D', value: '7d' },
-    { label: '30D', value: '30d' },
+    { label: '1D', value: '1d' },
+    { label: '1W', value: '1w' },
+    { label: '1M', value: '1m' },
     { label: '3M', value: '3m' },
-    { label: '1Y', value: '1y' },
-    { label: 'All', value: 'all' },
+    { label: 'ALL', value: 'all' },
 ]
 
 import { DailyPnLPoint } from '@/types'
 
 export function PerformanceChart() {
-    const [period, setPeriod] = useState('30d')
+    const [period, setPeriod] = useState('1m')
 
     const { data, isLoading } = useQuery({
         queryKey: ['analytics', period],
@@ -39,49 +39,51 @@ export function PerformanceChart() {
 
     const currentBalance = data?.initialBalance || 0
     const unrealizedPnl = data?.unrealizedPnl || 0
-    const currentEquity = currentBalance + unrealizedPnl
-    const latestCumulativePnl = chartData.length > 0 ? chartData[chartData.length - 1].cumulative : 0
-    const isProfit = (latestCumulativePnl + unrealizedPnl) >= 0;
+    const currentEquity = currentBalance + (chartData.length > 0 ? chartData[chartData.length - 1].cumulative : 0) + unrealizedPnl
+    const latestPnl = chartData.length > 0 ? chartData[chartData.length - 1].pnl : 0
+    const growthPercent = ((currentEquity - currentBalance) / currentBalance) * 100 || 0
+    const isProfit = latestPnl >= 0;
 
     return (
-        <div className="bg-black/40 backdrop-blur-xl border border-white/5 rounded-[2rem] p-8 h-full flex flex-col group relative overflow-hidden transition-all duration-500 hover:border-white/10">
+        <div className="bg-zinc-950/30 backdrop-blur-3xl border border-white/5 rounded-[2.5rem] p-10 h-full flex flex-col group relative overflow-hidden transition-all duration-700 hover:border-blue-500/10">
             {/* Background Ambient Glow */}
-            <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/5 blur-[100px] rounded-full pointer-events-none transition-all duration-1000 group-hover:bg-blue-500/10" />
+            <div className="absolute top-0 left-0 w-80 h-80 bg-blue-500/5 blur-[120px] rounded-full pointer-events-none transition-all duration-1000 group-hover:scale-125" />
             
             {/* Header */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6 mb-10 relative z-10">
-                <div className="flex items-center gap-5">
-                    <div className="w-12 h-12 rounded-2xl bg-blue-600/10 border border-blue-500/20 flex items-center justify-center shadow-inner group-hover:scale-110 transition-all duration-500">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" className="text-blue-400 group-hover:rotate-12 transition-transform">
-                            <path d="M4 12V20M12 4V20M20 12V20" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/>
-                        </svg>
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-8 mb-12 relative z-10">
+                <div className="flex flex-col gap-5">
+                    <div className="flex items-center gap-3">
+                         <div className="w-2 h-6 bg-blue-500 rounded-full shadow-[0_0_12px_rgba(59,130,246,0.4)]" />
+                         <h3 className="text-[11px] font-black text-zinc-600 uppercase tracking-[0.4em] leading-none">Net Performance</h3>
                     </div>
-                    <div>
-                        <h3 className="text-[10px] font-black text-zinc-500 uppercase tracking-[0.3em] leading-none mb-2">Performance</h3>
-                        <div className="flex items-baseline gap-3">
-                            <p className="text-4xl font-black text-white tracking-tighter leading-none font-mono">
+                    
+                    <div className="flex items-baseline gap-6">
+                        <div className="flex flex-col">
+                             <h2 className="text-[44px] font-black text-white tracking-tighter leading-none tabular-nums">
                                 ${currentEquity.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </p>
+                            </h2>
+                        </div>
+                        <div className="flex flex-col gap-1.5">
                             <span className={cn(
-                                "flex items-center gap-1 text-[10px] font-black px-2.5 py-1 rounded-lg border uppercase tracking-widest",
-                                isProfit ? "bg-green-500/10 text-green-400 border-green-500/20" : "bg-red-500/10 text-red-400 border-red-500/20"
+                                "flex items-center gap-1.5 text-[10px] font-black px-3 py-1.5 rounded-xl border uppercase tracking-[0.15em]",
+                                isProfit ? "bg-profit-light/10 text-profit-light border-profit-light/20" : "bg-loss-light/10 text-loss-light border-loss-light/20"
                             )}>
-                                {isProfit ? '▲' : '▼'} {Math.abs((latestCumulativePnl / (currentBalance || 1)) * 100).toFixed(2)}%
+                                {isProfit ? '+' : ''}${Math.abs(latestPnl).toLocaleString()} ({growthPercent >= 0 ? '+' : ''}{growthPercent.toFixed(2)}%)
                             </span>
                         </div>
                     </div>
                 </div>
 
-                <div className="flex items-center gap-1.5 bg-[#121212] p-1.5 rounded-2xl border border-white/5 shadow-inner">
+                <div className="flex items-center gap-1 bg-zinc-900/50 p-1 rounded-2xl border border-white/5 shadow-inner backdrop-blur-md">
                     {PERIODS.map(p => (
                         <button
                             key={p.value}
                             onClick={() => setPeriod(p.value)}
                             className={cn(
-                                "px-5 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-xl transition-all active:scale-95",
+                                "px-6 py-2.5 text-[9px] font-black uppercase tracking-widest rounded-xl transition-all duration-500",
                                 period === p.value
-                                    ? 'bg-white text-black shadow-xl'
-                                    : 'text-zinc-500 hover:text-zinc-300'
+                                    ? 'bg-blue-600 text-white shadow-[0_0_20px_rgba(37,99,235,0.3)]'
+                                    : 'text-zinc-500 hover:text-white'
                             )}
                         >
                             {p.label}
@@ -90,57 +92,55 @@ export function PerformanceChart() {
                 </div>
             </div>
 
-            {/* Chart */}
-            <div className="flex-1 min-h-[340px] relative z-10">
+            {/* Chart Area */}
+            <div className="flex-1 min-h-[360px] relative z-10 w-[calc(100%+20px)] -ml-5">
                 {isLoading ? (
-                    <div className="h-full w-full bg-white/5 animate-pulse rounded-2xl border border-white/5" />
+                    <div className="h-full w-full bg-white/2 animate-pulse rounded-3xl" />
                 ) : chartData.length === 0 ? (
-                    <div className="h-full flex flex-col items-center justify-center border border-dashed border-white/10 rounded-2xl bg-white/[0.02]">
-                        <p className="text-[10px] font-black text-foreground-disabled uppercase tracking-[0.3em]">No_Telemetry_Detected</p>
+                    <div className="h-full flex flex-col items-center justify-center border border-dashed border-white/5 rounded-3xl bg-white/[0.01]">
+                        <p className="text-[11px] font-black text-zinc-700 uppercase tracking-[0.4em]">Awaiting_Metrics_Stream</p>
                     </div>
                 ) : (
                     <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
+                        <AreaChart data={chartData} margin={{ top: 20, right: 30, left: 30, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="chartGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="0%" stopColor="#2563eb" stopOpacity={0.25} />
-                                    <stop offset="60%" stopColor="#2563eb" stopOpacity={0.05} />
-                                    <stop offset="100%" stopColor="#2563eb" stopOpacity={0} />
+                                    <stop offset="0%" stopColor="#0ea5e9" stopOpacity={0.15} />
+                                    <stop offset="100%" stopColor="#0ea5e9" stopOpacity={0} />
                                 </linearGradient>
                             </defs>
-                            <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.03)" strokeDasharray="8 8" />
+                            <CartesianGrid vertical={false} stroke="rgba(255,255,255,0.02)" strokeDasharray="10 10" />
                             <XAxis
                                 dataKey="date"
-                                tick={{ fontSize: 9, fontWeight: 900, fill: '#64748b' }}
+                                tick={{ fontSize: 9, fontWeight: 900, fill: '#3f3f46' }}
                                 tickLine={false}
                                 axisLine={false}
                                 dy={15}
                                 tickFormatter={(v) => format(new Date(v), 'MMM dd')}
                             />
                             <YAxis
-                                tick={{ fontSize: 9, fontWeight: 900, fill: '#64748b' }}
-                                tickLine={false}
-                                axisLine={false}
-                                orientation="right"
-                                tickFormatter={(v) => `$${v >= 1000 ? (v/1000).toFixed(1) + 'k' : v}`}
+                                hide
                             />
                             <Tooltip
-                                content={({ active, payload, label }) => {
+                                cursor={{ stroke: 'rgba(59, 130, 246, 0.2)', strokeWidth: 1 }}
+                                content={({ active, payload }) => {
                                     if (active && payload && payload.length) {
                                         const data = payload[0].payload;
                                         const val = payload[0].value as number;
+                                        const pnl = data.pnl;
                                         return (
-                                            <div className="bg-black/80 backdrop-blur-2xl border border-white/10 p-4 rounded-xl shadow-2xl ring-1 ring-white/10">
-                                                <p className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-1.5">{format(new Date(data.date), 'MMMM dd, yyyy')}</p>
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center justify-between gap-8">
-                                                        <span className="text-[9px] font-bold text-foreground-disabled uppercase tracking-widest">Equity Val</span>
-                                                        <span className="text-xs font-black text-white font-mono">${(val + currentBalance).toLocaleString()}</span>
+                                            <div className="bg-zinc-900/90 backdrop-blur-2xl border border-white/10 p-5 rounded-2xl shadow-2xl relative overflow-hidden group/tip">
+                                                <div className="absolute top-0 left-0 w-1 h-full bg-blue-500" />
+                                                <p className="text-[10px] font-black text-zinc-500 uppercase tracking-widest mb-3 opacity-60">{format(new Date(data.date), 'EEEE, MMM dd')}</p>
+                                                <div className="space-y-2">
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Equity Path</span>
+                                                        <span className="text-sm font-black text-white tabular-nums">${(val + currentBalance).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
                                                     </div>
-                                                    <div className="flex items-center justify-between gap-8">
-                                                        <span className="text-[9px] font-bold text-foreground-disabled uppercase tracking-widest">Growth</span>
-                                                        <span className={cn("text-xs font-black font-mono", val >= 0 ? "text-green-400" : "text-red-400")}>
-                                                            {val >= 0 ? '+' : ''}{val.toLocaleString()}
+                                                    <div className="flex flex-col gap-0.5">
+                                                        <span className="text-[9px] font-black text-zinc-600 uppercase tracking-widest">Delta</span>
+                                                        <span className={cn("text-xs font-black tabular-nums", pnl >= 0 ? "text-profit-light" : "text-loss-light")}>
+                                                            {pnl >= 0 ? '+' : ''}${pnl.toLocaleString()}
                                                         </span>
                                                     </div>
                                                 </div>
@@ -153,12 +153,20 @@ export function PerformanceChart() {
                             <Area
                                 type="monotone"
                                 dataKey="cumulative"
-                                stroke="#3b82f6"
-                                strokeWidth={4}
+                                stroke="#0ea5e9"
+                                strokeWidth={3}
+                                strokeLinecap="round"
                                 fillOpacity={1}
                                 fill="url(#chartGradient)"
-                                animationDuration={2000}
+                                animationDuration={2500}
                                 animationEasing="ease-in-out"
+                                activeDot={{ 
+                                    r: 6, 
+                                    stroke: '#0ea5e9', 
+                                    strokeWidth: 2, 
+                                    fill: '#000',
+                                    className: 'shadow-[0_0_15px_rgba(14,165,233,0.5)]'
+                                }}
                             />
                         </AreaChart>
                     </ResponsiveContainer>

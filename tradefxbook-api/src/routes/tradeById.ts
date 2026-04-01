@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { authMiddleware } from '../middleware/authMiddleware';
 import { generateId, queryOne, queryMany, execute, toUnix, fromUnix } from '../lib/db';
 import type { AppEnv } from '../index';
+import { calculatePnL } from './trades';
 
 const tradeById = new Hono<AppEnv>();
 tradeById.use('*', authMiddleware);
@@ -66,24 +67,29 @@ tradeById.get('/:id', async (c) => {
 
 // PUT /api/trades/:id
 const updateSchema = z.object({
-  exitPrice:         z.number().optional(),
-  exitDate:          z.string().optional(),
-  stopLoss:          z.number().optional(),
-  takeProfit:        z.number().optional(),
+  symbol:            z.string().optional(),
+  type:              z.enum(['BUY', 'SELL']).optional(),
+  entryPrice:        z.number().optional(),
+  entryDate:         z.string().optional(),
+  exitPrice:         z.number().optional().nullable(),
+  exitDate:          z.string().optional().nullable(),
+  quantity:          z.number().optional(),
+  stopLoss:          z.number().optional().nullable(),
+  takeProfit:        z.number().optional().nullable(),
   commission:        z.number().optional(),
   swap:              z.number().optional(),
   fees:              z.number().optional(),
   status:            z.enum(['OPEN', 'CLOSED', 'CANCELLED', 'PENDING']).optional(),
-  strategyId:        z.string().nullable().optional(),
-  setupType:         z.string().optional(),
-  marketCondition:   z.string().optional(),
-  entryEmotion:      z.string().optional(),
-  exitEmotion:       z.string().optional(),
-  preTradeAnalysis:  z.string().optional(),
-  postTradeAnalysis: z.string().optional(),
-  lessonsLearned:    z.string().optional(),
-  rating:            z.number().int().min(1).max(5).optional(),
-  tagIds:            z.array(z.string()).optional(),
+  strategyId:        z.string().optional().nullable().transform(v => v === '' ? null : v),
+  setupType:         z.string().optional().nullable(),
+  marketCondition:   z.enum(['TRENDING_UP','TRENDING_DOWN','RANGING','VOLATILE','BREAKOUT','REVERSAL']).optional().nullable(),
+  entryEmotion:      z.enum(['CONFIDENT','FEARFUL','GREEDY','IMPATIENT','NEUTRAL','FRUSTRATED','EXCITED','CAUTIOUS']).optional().nullable(),
+  exitEmotion:       z.enum(['CONFIDENT','FEARFUL','GREEDY','IMPATIENT','NEUTRAL','FRUSTRATED','EXCITED','CAUTIOUS']).optional().nullable(),
+  preTradeAnalysis:  z.string().optional().nullable(),
+  postTradeAnalysis: z.string().optional().nullable(),
+  lessonsLearned:    z.string().optional().nullable(),
+  rating:            z.number().int().min(1).max(5).optional().nullable(),
+  tagIds:            z.array(z.string()).optional().transform(v => v?.filter(id => id !== '')),
 });
 
 tradeById.put('/:id', async (c) => {
@@ -105,7 +111,45 @@ tradeById.put('/:id', async (c) => {
   const fields: string[] = ['updatedAt = ?'];
   const vals: unknown[] = [now];
 
+  // Merge current trade with updates for recalculation
+  const merged = {
+    symbol: d.symbol ?? (trade.symbol as string),
+    type: d.type ?? (trade.type as 'BUY' | 'SELL'),
+    entryPrice: d.entryPrice ?? (trade.entryPrice as number),
+    exitPrice: d.exitPrice !== undefined ? d.exitPrice : (trade.exitPrice as number | null),
+    quantity: d.quantity ?? (trade.quantity as number),
+    commission: d.commission ?? (trade.commission as number),
+    swap: d.swap ?? (trade.swap as number),
+    fees: d.fees ?? (trade.fees as number),
+    stopLoss: d.stopLoss !== undefined ? d.stopLoss : (trade.stopLoss as number | null),
+  };
+
+  // Recalculate P&L if relevant fields changed
+  let pnl = trade.pnl as number;
+  let pnlPct = trade.pnlPercentage as number;
+  let netPnl = trade.netPnl as number;
+  let rMultiple = trade.rMultiple as number | null;
+
+  if (merged.exitPrice !== null) {
+    const calc = calculatePnL(
+      merged.type,
+      merged.entryPrice,
+      merged.exitPrice,
+      merged.quantity,
+      merged.symbol,
+      merged.commission,
+      merged.swap,
+      merged.fees,
+      merged.stopLoss
+    );
+    pnl = calc.pnl;
+    pnlPct = calc.pnlPercentage;
+    netPnl = calc.netPnL;
+    rMultiple = calc.rMultiple;
+  }
+
   const map: Record<string, string> = {
+    symbol: 'symbol', type: 'type', entryPrice: 'entryPrice', entryDate: 'entryDate',
     exitPrice: 'exitPrice', exitDate: 'exitDate', stopLoss: 'stopLoss',
     takeProfit: 'takeProfit', commission: 'commission', swap: 'swap', fees: 'fees',
     status: 'status', strategyId: 'strategyId', setupType: 'setupType',
@@ -118,11 +162,15 @@ tradeById.put('/:id', async (c) => {
   for (const [key, col] of Object.entries(map)) {
     if (key in d && (d as Record<string, unknown>)[key] !== undefined) {
       let val: unknown = (d as Record<string, unknown>)[key];
-      if (key === 'exitDate' && typeof val === 'string') val = toUnix(val);
+      if ((key === 'exitDate' || key === 'entryDate') && typeof val === 'string') val = toUnix(val);
       fields.push(`${col} = ?`);
       vals.push(val);
     }
   }
+
+  // Also push calculated fields
+  fields.push('pnl = ?', 'pnlPercentage = ?', 'netPnl = ?', 'rMultiple = ?');
+  vals.push(pnl, pnlPct, netPnl, rMultiple);
 
   await execute(c.env.DB, `UPDATE trades SET ${fields.join(', ')} WHERE id = ?`, [...vals, id]);
 

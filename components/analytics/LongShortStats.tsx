@@ -9,59 +9,79 @@ interface LongShortStatsProps {
             trades: number
             pnl: number
             winRate: number
-            bestTrade: number
         }
         short: {
             trades: number
             pnl: number
             winRate: number
-            bestTrade: number
         }
     }
 }
 
 export function LongShortStats({ data }: LongShortStatsProps) {
-    const StatRow = ({ label, value, isPnl = false, highlight = false }: any) => (
-        <div className="flex justify-between items-center text-sm py-1">
-            <span className="text-[var(--foreground-muted)]">{label}</span>
-            <span className={cn(
-                "font-medium",
-                isPnl ? (value >= 0 ? "text-green-400" : "text-red-400") : "text-[var(--foreground)]",
-                highlight && "text-blue-400"
+    const formatCurrency = (val: number) => {
+        return val < 0 ? `-$${Math.abs(val).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : `$${val.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
+    }
+
+    const SideCard = ({ type, stats }: { type: 'long' | 'short', stats: any }) => {
+        const isLong = type === 'long'
+        return (
+            <div className={cn(
+                "group relative bg-[#0a0a0a] border border-white/5 rounded-2xl p-5 transition-all duration-300",
+                isLong ? "hover:border-blue-500/20" : "hover:border-red-500/20"
             )}>
-                {isPnl ? `${value >= 0 ? '+' : ''}$${Math.abs(value).toFixed(2)}` : value}
-            </span>
-        </div>
-    )
-
-    const SideCard = ({ type, stats }: { type: 'long' | 'short', stats: any }) => (
-        <div className="bg-[var(--background-tertiary)] p-4 rounded-xl border border-[var(--border)] flex-1">
-            <div className="flex items-center gap-2 mb-4 pb-2 border-b border-[var(--border)]">
-                <div className={cn(
-                    "w-8 h-8 rounded-lg flex items-center justify-center",
-                    type === 'long' ? "bg-blue-500/20 text-blue-400" : "bg-red-500/20 text-red-400"
-                )}>
-                    {type === 'long' ? <ArrowUpRight size={18} /> : <ArrowDownRight size={18} />}
+                <div className="flex items-center gap-3 mb-6">
+                    <div className={cn(
+                        "w-9 h-9 rounded-xl flex items-center justify-center border transition-colors",
+                        isLong 
+                            ? "bg-blue-500/10 text-blue-500 border-blue-500/20 group-hover:bg-blue-500 group-hover:text-white" 
+                            : "bg-red-500/10 text-red-500 border-red-500/20 group-hover:bg-red-500 group-hover:text-white"
+                    )}>
+                        {isLong ? <TrendingUp size={18} /> : <TrendingDown size={18} />}
+                    </div>
+                    <span className="font-black text-white text-base tracking-tight font-jakarta">
+                        {isLong ? 'Long' : 'Short'}
+                    </span>
                 </div>
-                <span className="font-bold text-[var(--foreground)] uppercase tracking-wider text-sm">
-                    {type === 'long' ? 'Long' : 'Short'}
-                </span>
-            </div>
 
-            <div className="space-y-2">
-                <StatRow label="Trades" value={stats.trades} />
-                <StatRow label="P&L" value={stats.pnl} isPnl />
-                <StatRow label="Win Rate" value={`${stats.winRate.toFixed(1)}%`} highlight />
+                <div className="grid grid-cols-3 gap-4">
+                    <div>
+                        <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-1.5 leading-none">TRADES</p>
+                        <p className="text-base font-black text-white font-jakarta tracking-tighter">{stats.trades}</p>
+                    </div>
+                    <div>
+                        <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-1.5 leading-none">P&L</p>
+                        <p className={cn(
+                            "text-base font-black font-jakarta tracking-tighter",
+                            stats.pnl >= 0 ? "text-blue-500" : "text-red-500"
+                        )}>
+                            {formatCurrency(stats.pnl)}
+                        </p>
+                    </div>
+                    <div>
+                        <p className="text-[9px] font-black text-white/30 uppercase tracking-[0.2em] mb-1.5 leading-none">WIN %</p>
+                        <p className="text-base font-black text-blue-500 font-jakarta tracking-tighter">
+                            {stats.winRate.toFixed(1)}%
+                        </p>
+                    </div>
+                </div>
             </div>
-        </div>
-    )
+        )
+    }
 
     return (
-        <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-2xl p-6">
-            <h3 className="text-lg font-semibold text-[var(--foreground)] mb-4 flex items-center gap-2">
-                <span>⚖️</span> Long vs Short
-            </h3>
-            <div className="flex gap-4">
+        <div className="bg-[#0a0f1d]/40 border border-white/5 rounded-3xl p-6 h-full flex flex-col">
+            <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/40 border border-white/10">
+                    <TrendingUp size={18} />
+                </div>
+                <div>
+                    <h3 className="text-lg font-black font-jakarta text-white tracking-tight leading-none">Long vs Short</h3>
+                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">Performance by trade direction</p>
+                </div>
+            </div>
+            
+            <div className="flex flex-col gap-4 flex-1">
                 <SideCard type="long" stats={data.long} />
                 <SideCard type="short" stats={data.short} />
             </div>

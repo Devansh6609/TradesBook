@@ -31,15 +31,14 @@ export default function NumberTicker({
   const isInView = useInView(ref, { once: true, margin: '0px' })
 
   useEffect(() => {
-    if (isInView) {
-      setTimeout(() => {
-        motionValue.set(value)
-      }, delay * 1000)
-    }
-  }, [motionValue, isInView, delay, value])
+    const timeout = setTimeout(() => {
+      motionValue.set(value)
+    }, delay * 1000)
+    return () => clearTimeout(timeout)
+  }, [motionValue, delay, value])
 
   useEffect(() => {
-    springValue.on('change', (latest) => {
+    const unsubscribe = springValue.on('change', (latest) => {
       if (ref.current) {
         ref.current.textContent = 
           prefix + 
@@ -50,7 +49,13 @@ export default function NumberTicker({
           suffix
       }
     })
+    return () => unsubscribe()
   }, [springValue, decimalPlaces, prefix, suffix])
+
+  const initialValue = Intl.NumberFormat('en-US', {
+    minimumFractionDigits: decimalPlaces,
+    maximumFractionDigits: decimalPlaces,
+  }).format(direction === 'down' ? value : 0)
 
   return (
     <span
@@ -58,7 +63,7 @@ export default function NumberTicker({
       className={className}
     >
       {prefix}
-      {direction === 'down' ? value : 0}
+      {initialValue}
       {suffix}
     </span>
   )

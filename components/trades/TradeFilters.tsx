@@ -1,11 +1,18 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Select } from '@/components/ui/Select'
-import { DateRangePicker } from '@/components/ui/DatePicker'
-import { Filter, X } from 'lucide-react'
+import { Calendar, X } from 'lucide-react'
 import { cn } from '@/lib/utils'
-import { statusOptions, typeOptions } from '@/lib/validations/trade'
+import { 
+  startOfDay, 
+  endOfDay, 
+  startOfWeek, 
+  endOfWeek, 
+  startOfMonth, 
+  endOfMonth, 
+  subMonths,
+  isEqual
+} from 'date-fns'
+import { DatePicker } from '@/components/ui/DatePicker'
 
 export interface TradeFiltersState {
   symbol: string
@@ -22,19 +29,16 @@ interface TradeFiltersProps {
   filters: TradeFiltersState
   onChange: (filters: TradeFiltersState) => void
   strategies: { id: string; name: string }[]
+  stats?: {
+    totalTrades: number
+    winningTrades: number
+    losingTrades: number
+  }
   className?: string
 }
 
-export function TradeFilters({ filters, onChange, strategies, className }: TradeFiltersProps) {
-  const hasActiveFilters =
-    filters.symbol ||
-    filters.type ||
-    filters.status ||
-    filters.strategyId ||
-    filters.dateFrom ||
-    filters.dateTo ||
-    filters.minPnl ||
-    filters.maxPnl
+export function TradeFilters({ filters, onChange, strategies, stats, className }: TradeFiltersProps) {
+  const [showCustomDates, setShowCustomDates] = useState(false)
 
   const handleReset = () => {
     onChange({
@@ -47,138 +51,204 @@ export function TradeFilters({ filters, onChange, strategies, className }: Trade
       minPnl: '',
       maxPnl: '',
     })
+    setShowCustomDates(false)
   }
 
-  const handleDateChange = (range: { startDate: Date | null; endDate: Date | null }) => {
-    onChange({
-      ...filters,
-      dateFrom: range.startDate,
-      dateTo: range.endDate,
-    })
+  const setTimePeriod = (period: string) => {
+    const now = new Date()
+    let from: Date | null = null
+    let to: Date | null = null
+
+    switch (period) {
+      case 'today':
+        from = startOfDay(now)
+        to = endOfDay(now)
+        break
+      case 'week':
+        from = startOfWeek(now, { weekStartsOn: 1 })
+        to = endOfWeek(now, { weekStartsOn: 1 })
+        break
+      case 'month':
+        from = startOfMonth(now)
+        to = endOfMonth(now)
+        break
+      case 'lastMonth':
+        const lastMonth = subMonths(now, 1)
+        from = startOfMonth(lastMonth)
+        to = endOfMonth(lastMonth)
+        break
+      case 'last3Months':
+        from = startOfMonth(subMonths(now, 2))
+        to = endOfMonth(now)
+        break
+      case 'all':
+      default:
+        from = null
+        to = null
+        break
+    }
+
+    onChange({ ...filters, dateFrom: from, dateTo: to })
+    setShowCustomDates(false)
   }
 
-  const strategyOptions = [
-    { value: '', label: 'ALL_STRATEGIES' },
-    ...strategies.map((s) => ({ value: s.id, label: s.name.toUpperCase() })),
-  ]
+  const isPeriodActive = (period: string) => {
+    if (showCustomDates && period !== 'custom') return false
+    
+    const now = new Date()
+    let from: Date | null = null
+    let to: Date | null = null
 
-  const statusOpts = [
-    { value: '', label: 'ALL_STATUSES' },
-    ...statusOptions.map((s) => ({ value: s.value, label: s.label.toUpperCase() })),
-  ]
+    switch (period) {
+      case 'today': from = startOfDay(now); to = endOfDay(now); break;
+      case 'week': from = startOfWeek(now, { weekStartsOn: 1 }); to = endOfWeek(now, { weekStartsOn: 1 }); break;
+      case 'month': from = startOfMonth(now); to = endOfMonth(now); break;
+      case 'lastMonth': from = startOfMonth(subMonths(now, 1)); to = endOfMonth(subMonths(now, 1)); break;
+      case 'last3Months': from = startOfMonth(subMonths(now, 2)); to = endOfMonth(now); break;
+      case 'all': from = null; to = null; break;
+    }
 
-  const typeOpts = [
-    { value: '', label: 'ALL_TYPES' },
-    ...typeOptions.map((t) => ({ value: t.value, label: t.label.toUpperCase() })),
-  ]
+    if (period === 'all') return !filters.dateFrom && !filters.dateTo && !showCustomDates
+    
+    if (!filters.dateFrom || !filters.dateTo) return false
+
+    return isEqual(filters.dateFrom, from!) && isEqual(filters.dateTo, to!)
+  }
 
   return (
-    <div className={cn('space-y-8', className)}>
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
-        {/* Symbol Input */}
-        <div className="space-y-2.5">
-          <label className="text-[10px] font-black text-blue-500/80 uppercase tracking-[0.2em] pl-1 drop-shadow-[0_0_8px_rgba(59,130,246,0.5)]">Vector_ID</label>
-          <div className="relative group">
-            <div className="absolute -inset-0.5 bg-blue-500/20 rounded-xl blur opacity-0 group-hover:opacity-100 transition-all duration-500" />
-            <Input
-              placeholder="EURUSD, BTCUSD..."
-              value={filters.symbol}
-              onChange={(e) => onChange({ ...filters, symbol: e.target.value.toUpperCase() })}
-              className="relative bg-black/60 border-white/5 text-white placeholder:text-foreground-disabled/20 text-xs font-black uppercase tracking-widest h-12 focus:border-blue-500/40 rounded-xl transition-all hover:bg-black/80"
-            />
-          </div>
-        </div>
-
-        {/* Direction Select */}
-        <div className="space-y-2.5">
-          <label className="text-[10px] font-black text-foreground-disabled uppercase tracking-[0.2em] pl-1">Vector_Dir</label>
-          <Select
-            value={filters.type}
-            options={typeOpts}
-            onChange={(value) => onChange({ ...filters, type: value as string })}
-            className="bg-black/60 border-white/5 text-white text-xs font-black h-12 rounded-xl hover:bg-black/80 transition-all"
-          />
-        </div>
-
-        {/* Status Select */}
-        <div className="space-y-2.5">
-          <label className="text-[10px] font-black text-foreground-disabled uppercase tracking-[0.2em] pl-1">Process_State</label>
-          <Select
-            value={filters.status}
-            options={statusOpts}
-            onChange={(value) => onChange({ ...filters, status: value as string })}
-            className="bg-black/60 border-white/5 text-white text-xs font-black h-12 rounded-xl hover:bg-black/80 transition-all"
-          />
-        </div>
-
-        {/* Strategy Select */}
-        <div className="space-y-2.5">
-          <label className="text-[10px] font-black text-foreground-disabled uppercase tracking-[0.2em] pl-1">Protocol_Logic</label>
-          <Select
-            value={filters.strategyId}
-            options={strategyOptions}
-            onChange={(value) => onChange({ ...filters, strategyId: value as string })}
-            searchable
-            className="bg-black/60 border-white/5 text-white text-xs font-black h-12 rounded-xl hover:bg-black/80 transition-all"
-          />
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-end">
-        {/* Date Range */}
-        <div className="space-y-2.5">
-          <label className="text-[10px] font-black text-foreground-disabled uppercase tracking-[0.2em] pl-1">Temporal_Window</label>
-          <div className="bg-black/60 border border-white/5 rounded-xl px-4 py-1.5 min-h-[48px] flex items-center hover:bg-black/80 transition-all">
-            <DateRangePicker
-              startDate={filters.dateFrom}
-              endDate={filters.dateTo}
-              onChange={handleDateChange}
-              className="w-full bg-transparent border-0 text-xs font-black tracking-widest text-white p-0"
-            />
-          </div>
-        </div>
-
-        {/* P&L Range & Actions */}
-        <div className="flex flex-col sm:flex-row items-end gap-6">
-          <div className="flex-1 space-y-2.5 w-full">
-            <label className="text-[10px] font-black text-foreground-disabled uppercase tracking-[0.2em] pl-1">PnL_Threshold</label>
-            <div className="flex items-center gap-3">
-              <Input
-                type="number"
-                placeholder="MIN"
-                value={filters.minPnl}
-                onChange={(e) => onChange({ ...filters, minPnl: e.target.value })}
-                className="bg-black/60 border-white/5 text-white text-xs font-black font-mono h-12 text-center rounded-xl hover:bg-black/80 transition-all"
-              />
-              <div className="w-6 h-px bg-white/10 shrink-0" />
-              <Input
-                type="number"
-                placeholder="MAX"
-                value={filters.maxPnl}
-                onChange={(e) => onChange({ ...filters, maxPnl: e.target.value })}
-                className="bg-black/60 border-white/5 text-white text-xs font-black font-mono h-12 text-center rounded-xl hover:bg-black/80 transition-all"
-              />
+    <div className={cn('space-y-6', className)}>
+      <div className="flex flex-col gap-6">
+        <div className="flex flex-wrap items-start gap-8">
+          {/* P&L Filter */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-foreground-disabled uppercase tracking-widest pl-0.5">P&L</label>
+            <div className="flex items-center gap-1.5 p-1 bg-[#111111] rounded-lg border border-white/5">
+              <FilterButton 
+                active={!filters.minPnl && !filters.maxPnl} 
+                onClick={() => onChange({ ...filters, minPnl: '', maxPnl: '' })}
+              >
+                All
+              </FilterButton>
+              <FilterButton 
+                active={filters.minPnl === '0'} 
+                onClick={() => onChange({ ...filters, minPnl: '0', maxPnl: '' })}
+              >
+                Profitable ({stats?.winningTrades || 0})
+              </FilterButton>
+              <FilterButton 
+                active={filters.maxPnl === '0'} 
+                onClick={() => onChange({ ...filters, minPnl: '', maxPnl: '0' })}
+              >
+                Loss ({stats?.losingTrades || 0})
+              </FilterButton>
             </div>
           </div>
 
-          <div className="flex items-center gap-3 shrink-0">
-            {hasActiveFilters && (
-              <button
-                onClick={handleReset}
-                className="h-12 px-6 rounded-xl border border-white/5 text-[10px] font-black text-foreground-disabled hover:text-white hover:bg-white/5 uppercase tracking-[0.3em] transition-all active:scale-95 whitespace-nowrap"
+          {/* Type Filter */}
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-foreground-disabled uppercase tracking-widest pl-0.5">Type</label>
+            <div className="flex items-center gap-1.5 p-1 bg-[#111111] rounded-lg border border-white/5">
+              <FilterButton 
+                active={!filters.type} 
+                onClick={() => onChange({ ...filters, type: '' })}
               >
-                Clear_Matrix
-              </button>
-            )}
-            <button
-               onClick={() => onChange({ ...filters })}
-               className="h-12 px-10 rounded-xl bg-blue-600 text-[10px] font-black text-white hover:bg-blue-500 uppercase tracking-[0.3em] shadow-[0_8px_24px_-8px_rgba(37,99,235,0.4)] hover:shadow-[0_8px_32px_-4px_rgba(37,99,235,0.6)] transition-all active:scale-95 whitespace-nowrap"
-            >
-              Update_Buffer
-            </button>
+                All
+              </FilterButton>
+              <FilterButton 
+                active={filters.type === 'BUY'} 
+                onClick={() => onChange({ ...filters, type: 'BUY' })}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-blue-500/50" />
+                  Long
+                </div>
+              </FilterButton>
+              <FilterButton 
+                active={filters.type === 'SELL'} 
+                onClick={() => onChange({ ...filters, type: 'SELL' })}
+              >
+                <div className="flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-red-500/50" />
+                  Short
+                </div>
+              </FilterButton>
+            </div>
           </div>
         </div>
+
+        {/* Time Period Filter */}
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <div className="space-y-2">
+            <label className="text-[10px] font-bold text-foreground-disabled uppercase tracking-widest pl-0.5">Time Period</label>
+            <div className="flex flex-wrap items-center gap-1.5 p-1 bg-[#111111] rounded-lg border border-white/5">
+              <FilterButton active={isPeriodActive('all')} onClick={() => setTimePeriod('all')}>All Time</FilterButton>
+              <FilterButton active={isPeriodActive('today')} onClick={() => setTimePeriod('today')}>Today</FilterButton>
+              <FilterButton active={isPeriodActive('week')} onClick={() => setTimePeriod('week')}>This Week</FilterButton>
+              <FilterButton active={isPeriodActive('month')} onClick={() => setTimePeriod('month')}>This Month</FilterButton>
+              <FilterButton active={isPeriodActive('lastMonth')} onClick={() => setTimePeriod('lastMonth')}>Last Month</FilterButton>
+              <FilterButton active={isPeriodActive('last3Months')} onClick={() => setTimePeriod('last3Months')}>Last 3 Months</FilterButton>
+              <FilterButton 
+                active={showCustomDates} 
+                onClick={() => setShowCustomDates(!showCustomDates)}
+              >
+                <div className="flex items-center gap-1.5">
+                  <Calendar size={13} />
+                  Custom
+                </div>
+              </FilterButton>
+            </div>
+          </div>
+
+          <button
+            onClick={handleReset}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg bg-black/40 border border-white/5 text-xs font-bold text-foreground-disabled hover:text-white hover:bg-white/5 transition-all"
+          >
+            <X size={14} />
+            Clear All Filters
+          </button>
+        </div>
+
+        {/* Custom Date Inputs */}
+        {showCustomDates && (
+          <div className="flex items-center gap-4 p-4 bg-[#111111]/50 rounded-xl border border-white/5 animate-in fade-in slide-in-from-top-2">
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold text-foreground-disabled uppercase pl-1">Start Date</span>
+              <DatePicker
+                value={filters.dateFrom}
+                onChange={(date) => onChange({ ...filters, dateFrom: date })}
+                placeholder="Select date"
+                className="w-48"
+              />
+            </div>
+            <div className="h-8 w-px bg-white/5 self-end mb-2" />
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold text-foreground-disabled uppercase pl-1">End Date</span>
+              <DatePicker
+                value={filters.dateTo}
+                onChange={(date) => onChange({ ...filters, dateTo: date })}
+                placeholder="Select date"
+                className="w-48"
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
+  )
+}
+
+function FilterButton({ active, onClick, children }: { active: boolean, onClick: () => void, children: React.ReactNode }) {
+  return (
+    <button
+      onClick={onClick}
+      className={cn(
+        "px-4 py-1.5 rounded-md text-[13px] font-bold transition-all whitespace-nowrap",
+        active 
+          ? "bg-white/10 text-white border border-white/10 shadow-[0_0_15px_rgba(255,255,255,0.05)]" 
+          : "text-foreground-disabled hover:text-foreground-muted hover:bg-white/[0.02]"
+      )}
+    >
+      {children}
+    </button>
   )
 }

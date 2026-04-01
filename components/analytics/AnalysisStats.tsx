@@ -1,13 +1,14 @@
 'use client'
 
-import { Trophy, TrendingDown, Flame, AlertCircle, Target, Activity } from 'lucide-react'
-import { Card, CardContent } from '@/components/ui/Card'
+import { Trophy, TrendingDown, Flame, AlertCircle, Target, Activity, Percent, TrendingUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface AnalysisStatsProps {
     data: {
-        bestTrade: string | number
-        worstTrade: string | number
+        avgWinner: number | string
+        avgLoser: number | string
+        bestTrade: number | string
+        worstTrade: number | string
         winStreak: number
         lossStreak: number
         riskRewardRatio: number | string
@@ -16,16 +17,10 @@ interface AnalysisStatsProps {
 }
 
 export function AnalysisStats({ data }: AnalysisStatsProps) {
-    const StatItem = ({ label, value, subValue, icon: Icon, colorClass }: any) => (
-        <div className="bg-[var(--background-tertiary)] p-4 rounded-xl border border-[var(--border)] flex flex-col justify-between min-h-[100px]">
-            <div className="flex justify-between items-start mb-2">
-                <p className="text-[10px] font-bold text-[var(--foreground-muted)] uppercase tracking-widest">{label}</p>
-                {Icon && <Icon className={cn("w-4 h-4 opacity-50", colorClass)} />}
-            </div>
-            <div>
-                <p className={cn("text-xl font-bold text-[var(--foreground)]", colorClass)}>{value}</p>
-                {subValue && <p className="text-xs text-[var(--foreground-muted)] mt-1">{subValue}</p>}
-            </div>
+    const StatItem = ({ label, value, colorClass }: { label: string, value: string | number, colorClass?: string }) => (
+        <div className="flex flex-col gap-1">
+            <p className="text-[10px] font-black text-white/30 uppercase tracking-[0.15em]">{label}</p>
+            <p className={cn("text-base font-black tracking-tight font-jakarta", colorClass || "text-white")}>{value}</p>
         </div>
     )
 
@@ -33,60 +28,65 @@ export function AnalysisStats({ data }: AnalysisStatsProps) {
         if (val === undefined || val === null) return '$0.00'
         const num = typeof val === 'string' ? parseFloat(val) : val
         if (isNaN(num as number)) return '$0.00'
-        return `$${(num as number).toFixed(2)}`
+        return `$${Math.abs(num as number).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
     }
 
     const rr = data?.riskRewardRatio ? (typeof data.riskRewardRatio === 'number' ? data.riskRewardRatio : parseFloat(data.riskRewardRatio)) : 0
 
     return (
-        <div className="grid grid-cols-2 gap-4">
-            {/* Best Trade */}
-            <StatItem
-                label="Best Trade"
-                value={formatCurrency(data?.bestTrade)}
-                icon={Trophy}
-                colorClass="text-blue-400"
-            />
+        <div className="bg-[#0a0a0a] border border-white/5 rounded-2xl p-6 h-full flex flex-col">
+            <div className="flex items-center gap-3 mb-8">
+                <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-500">
+                    <Activity size={16} />
+                </div>
+                <h3 className="text-sm font-black uppercase tracking-widest text-white/90">Quick Stats</h3>
+            </div>
 
-            {/* Worst Trade */}
-            <StatItem
-                label="Worst Trade"
-                value={formatCurrency(data?.worstTrade)}
-                icon={TrendingDown}
-                colorClass="text-red-400"
-            />
+            <div className="grid grid-cols-2 gap-y-8 gap-x-4 flex-1">
+                <StatItem
+                    label="Avg Winner"
+                    value={formatCurrency(data?.avgWinner)}
+                    colorClass="text-blue-500"
+                />
+                <StatItem
+                    label="Avg Loser"
+                    value={formatCurrency(data?.avgLoser)}
+                    colorClass="text-red-500"
+                />
 
-            {/* Win Streak */}
-            <StatItem
-                label="Win Streak"
-                value={`${data?.winStreak ?? 0} trades`}
-                icon={Flame}
-                colorClass="text-orange-400"
-            />
+                <StatItem
+                    label="Best Trade"
+                    value={formatCurrency(data?.bestTrade)}
+                    colorClass="text-blue-500"
+                />
+                <StatItem
+                    label="Worst Trade"
+                    value={formatCurrency(data?.worstTrade)}
+                    colorClass="text-red-500"
+                />
 
-            {/* Loss Streak */}
-            <StatItem
-                label="Loss Streak"
-                value={`${data?.lossStreak ?? 0} trades`}
-                icon={AlertCircle}
-                colorClass="text-gray-400"
-            />
+                <StatItem
+                    label="Win Streak"
+                    value={`${data?.winStreak ?? 0} TRADES`}
+                    colorClass="text-blue-500"
+                />
+                <StatItem
+                    label="Loss Streak"
+                    value={`${data?.lossStreak ?? 0} TRADES`}
+                    colorClass="text-white/40"
+                />
 
-            {/* Risk Reward */}
-            <StatItem
-                label="Risk:Reward"
-                value={`1:${isNaN(rr) ? '0.00' : rr.toFixed(2)}`}
-                icon={Target}
-                colorClass="text-purple-400"
-            />
-
-            {/* Open Trades */}
-            <StatItem
-                label="Open Trades"
-                value={data?.openTrades ?? 0}
-                icon={Activity}
-                colorClass="text-[var(--foreground)]"
-            />
+                <StatItem
+                    label="Risk:Reward"
+                    value={`1:${isNaN(rr) ? '0.00' : rr.toFixed(2)}`}
+                    colorClass="text-blue-500"
+                />
+                <StatItem
+                    label="Open Trades"
+                    value={data?.openTrades ?? 0}
+                    colorClass="text-white"
+                />
+            </div>
         </div>
     )
 }

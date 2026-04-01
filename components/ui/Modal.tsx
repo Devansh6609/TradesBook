@@ -18,6 +18,8 @@ const sizeClasses = {
   md: 'max-w-md',
   lg: 'max-w-lg',
   xl: 'max-w-2xl',
+  '2xl': 'max-w-4xl',
+  '3xl': 'max-w-6xl',
   full: 'max-w-full mx-4',
 }
 
@@ -73,8 +75,8 @@ export function Modal({
       {/* Modal */}
       <div
         className={cn(
-          'relative w-full bg-background-secondary border border-border rounded-xl shadow-2xl',
-          'animate-slide-in',
+          'relative w-full bg-background-secondary border border-border/80 rounded-2xl shadow-[0_25px_80px_rgba(0,0,0,0.9),0_0_20px_rgba(37,99,235,0.03)]',
+          'animate-slide-in backdrop-blur-xl',
           sizeClasses[size],
           className
         )}

@@ -14,6 +14,7 @@ import tags      from './routes/tags';
 import settings  from './routes/settings';
 import analytics from './routes/analytics';
 import mt5       from './routes/mt5';
+import images    from './routes/images';
 
 // ─── Bindings type (matches wrangler.toml) ───────────────────────────────────
 export type Bindings = {
@@ -67,6 +68,7 @@ app.route('/api/tags', tags);
 app.route('/api/settings', settings);
 app.route('/api/analytics', analytics);
 app.route('/api/mt5-webhook', mt5);
+app.route('/api/images', images);
 
 // ─── 404 fallback ────────────────────────────────────────────────────────────
 app.notFound((c) => c.json({ error: 'Route not found' }, 404));
@@ -74,7 +76,13 @@ app.notFound((c) => c.json({ error: 'Route not found' }, 404));
 // ─── Global error handler ────────────────────────────────────────────────────
 app.onError((err, c) => {
   console.error('Unhandled error:', err);
-  return c.json({ error: 'Internal server error' }, 500);
+  const message = err instanceof Error ? err.message : 'Internal server error';
+  return c.json({ 
+    error: 'Internal server error', 
+    message,
+    stack: err instanceof Error ? err.stack : undefined,
+    details: String(err)
+  }, 500);
 });
 
 export default app;

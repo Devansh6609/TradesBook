@@ -46,7 +46,9 @@ export type D1Result = import('@cloudflare/workers-types').D1Result;
 export function toUnix(date: Date | string | null | undefined): number | null {
   if (!date) return null;
   const d = typeof date === 'string' ? new Date(date) : date;
-  return Math.floor(d.getTime() / 1000);
+  const time = d.getTime();
+  if (isNaN(time)) return null;
+  return Math.floor(time / 1000);
 }
 
 /** Convert Unix timestamp from D1 back to ISO string */

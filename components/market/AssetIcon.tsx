@@ -5,7 +5,7 @@ import Image from "next/image";
 
 interface AssetIconProps {
     symbol: string;
-    size?: "sm" | "md" | "lg";
+    size?: "xs" | "sm" | "md" | "lg";
     className?: string;
 }
 
@@ -25,7 +25,8 @@ const CURRENCY_TO_FLAG: Record<string, string> = {
 // Special assets that need specific handling or logos
 const SPECIAL_ASSETS: Record<string, { type: 'crypto' | 'metal' | 'index', base: string, quote?: string, logo?: string }> = {
     // Metals
-    XAUUSD: { type: 'metal', base: 'XAU', quote: 'USD', logo: 'https://assets.coincap.io/assets/icons/paxg@2x.png' }, // Use PAXG as Gold proxy
+    XAUUSD: { type: 'metal', base: 'XAU', quote: 'USD', logo: '/assets/GOLD.webp' }, 
+    XAU: { type: 'metal', base: 'XAU', logo: '/assets/GOLD.webp' },
     XAGUSD: { type: 'metal', base: 'XAG', quote: 'USD' },
     // Crypto
     BTCUSD: { type: 'crypto', base: 'BTC', quote: 'USD', logo: 'https://assets.coincap.io/assets/icons/btc@2x.png' },
@@ -41,8 +42,8 @@ const SPECIAL_ASSETS: Record<string, { type: 'crypto' | 'metal' | 'index', base:
 };
 
 export function AssetIcon({ symbol, size = "md", className }: AssetIconProps) {
-    const s = size === "sm" ? 16 : size === "md" ? 24 : 32;
-    const fontSize = size === "sm" ? "text-[8px]" : size === "md" ? "text-[10px]" : "text-xs";
+    const s = size === "xs" ? 20 : size === "sm" ? 24 : size === "md" ? 32 : 40;
+    const fontSize = size === "xs" ? "text-[8px]" : size === "sm" ? "text-[9px]" : "text-[11px]";
 
     // Clean symbol
     const cleanSymbol = symbol.replace('/', '').toUpperCase();

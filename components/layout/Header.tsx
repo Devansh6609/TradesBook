@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useAuth } from '@/hooks/useAuth'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
-import { Search, Bell, Plus, Sun, Moon, Clock, ChevronDown, Menu, HelpCircle } from 'lucide-react'
+import { Search, Bell, Plus, Sun, Moon, Clock, ChevronDown, Menu } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/Button'
 import { useTheme } from '@/contexts/ThemeContext'
@@ -27,12 +27,17 @@ interface HeaderProps {
   onMenuClick?: () => void
 }
 
+import { useAccount } from '@/contexts/AccountContext'
+import { ConnectAccountModal } from '@/components/dashboard/ConnectAccountModal'
+
 export default function Header({ onMenuClick }: HeaderProps) {
   const { user } = useAuth()
+  const { selectedAccount, accounts, setSelectedAccountId } = useAccount()
   const pathname = usePathname()
-  const { theme, toggleTheme } = useTheme()
+  const { theme, toggleTheme, mounted } = useTheme()
   const [currentTime, setCurrentTime] = useState<Date | null>(null)
   const [isMounted, setIsMounted] = useState(false)
+  const [showConnectModal, setShowConnectModal] = useState(false)
 
   useEffect(() => {
     setIsMounted(true)
@@ -45,100 +50,147 @@ export default function Header({ onMenuClick }: HeaderProps) {
   const currentDate = format(new Date(), 'EEE, MMM d')
 
   return (
-    <header className="sticky top-0 z-40 h-20 bg-background/40 backdrop-blur-3xl border-b border-white/5 px-8 lg:px-12 transition-all duration-500">
-      <div className="flex items-center justify-between h-full w-full mx-auto">
-        {/* Left side - Context Info */}
-        <div className="flex items-center gap-10">
-          <div className="flex flex-col">
-            <h1 className="text-[17px] font-black text-white tracking-widest uppercase leading-none mb-2">{pageInfo.title}</h1>
-            <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 bg-blue-500 rounded-full shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
-                <span className="text-[9px] font-black text-zinc-500 uppercase tracking-[0.3em] opacity-60">{currentDate}</span>
+    <header className="sticky top-0 z-30 h-16 bg-background-secondary/80 backdrop-blur-xl border-b border-border">
+      <div className="flex items-center justify-between h-full px-4 lg:px-6">
+        {/* Left side - Page title */}
+        <div className="flex items-center gap-6">
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={onMenuClick}
+            className="lg:hidden p-2 hover:bg-white/5"
+            title="Open menu"
+          >
+            <Menu size={20} />
+          </Button>
+          <div className="hidden sm:block">
+            <div className="flex items-center gap-3">
+              <h1 className="text-[11px] font-black text-foreground uppercase tracking-[0.4em] leading-none">{pageInfo.title}</h1>
+              {selectedAccount && (
+                <div className="flex items-center gap-2 px-2.5 py-1 bg-background-tertiary border border-border rounded-lg group hover:border-blue-500/30 transition-all cursor-pointer">
+                  <div className={cn(
+                    "w-1.5 h-1.5 rounded-full shadow-[0_0_5px_rgba(59,130,246,0.5)]",
+                    selectedAccount.status === 'ACTIVE' ? "bg-blue-500 animate-pulse" : "bg-red-500"
+                  )} />
+                  <span className="text-[9px] font-black text-foreground-disabled uppercase tracking-widest group-hover:text-foreground transition-colors">
+                    {selectedAccount.name || selectedAccount.accountNumber}
+                  </span>
+                  <ChevronDown size={10} className="text-foreground-disabled group-hover:text-foreground" />
+                </div>
+              )}
+            </div>
+            <div className="flex items-center gap-2 mt-2">
+                <span className="text-[9px] font-black text-foreground-disabled uppercase tracking-[0.2em]">{currentDate}</span>
+                <div className="h-1 w-1 rounded-full bg-white/10" />
+                <div className="flex items-center gap-1.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse shadow-[0_0_8px_rgba(59,130,246,0.5)]" />
+                    <span className="text-[9px] font-black text-blue-400 uppercase tracking-widest">London Session</span>
+                </div>
             </div>
           </div>
         </div>
 
-        {/* Center - Search Bar Area */}
-        <div className="flex-1 max-w-2xl mx-16 hidden md:block">
-          <div className="relative group">
-            <Search size={14} className="absolute left-5 top-1/2 -translate-y-1/2 text-zinc-600 group-hover:text-blue-500 transition-all duration-500 z-10" />
+        {/* Center - Premium Search bar */}
+        <div className="hidden md:flex items-center flex-1 max-w-lg mx-12">
+          <div className="relative w-full group">
+            <Search
+              size={12}
+              className="absolute left-4 top-1/2 -translate-y-1/2 text-foreground-disabled group-focus-within:text-blue-400 transition-colors"
+            />
             <input
               type="text"
-              placeholder="Search for metrics, trades, or tools..."
-              className="w-full bg-white/[0.02] border border-white/5 rounded-2xl pl-12 pr-16 py-3 text-[11px] font-medium text-white placeholder:text-zinc-700 focus:outline-none focus:border-blue-500/30 focus:bg-white/[0.04] transition-all duration-500 relative z-1"
+              placeholder="QUICK_COMMAND (CTRL+K)"
+              className="w-full pl-11 pr-16 py-2 bg-background-tertiary border border-border rounded-xl text-[9px] font-black text-foreground placeholder:text-foreground-disabled/30 focus:outline-none focus:ring-1 focus:ring-blue-500/30 focus:bg-background-tertiary/80 transition-all uppercase tracking-[0.2em]"
             />
-            <div className="absolute right-5 top-1/2 -translate-y-1/2 px-2 py-0.5 bg-zinc-900/50 border border-white/10 rounded-lg text-[8px] font-black text-zinc-500 uppercase tracking-widest flex items-center gap-1 z-10 opacity-40 group-hover:opacity-100 transition-opacity">
-              <span className="text-[7px]">CTRL</span>
-              <span className="text-zinc-600">/</span>
-              <span>K</span>
-            </div>
           </div>
         </div>
 
         {/* Right side - Actions */}
-        <div className="flex items-center gap-6">
-          <div className="flex items-center gap-2">
-            {/* Theme Toggle */}
-            <button 
-              onClick={toggleTheme}
-              className="p-3 text-zinc-500 hover:text-white hover:bg-white/5 rounded-2xl transition-all duration-500 group"
-              aria-label="Toggle theme"
-            >
-              {theme === 'dark' ? <Moon size={18} className="group-hover:rotate-[360deg] transition-transform duration-700" /> : <Sun size={18} />}
-            </button>
+        <div className="flex items-center gap-3">
+          {/* Account Status Badge - Functional */}
+          {selectedAccount && (
+             <div className="hidden xl:flex flex-col items-end px-4 py-1.5 bg-background-tertiary border border-border rounded-xl">
+               <div className="flex items-center gap-2">
+                 <span className="text-[11px] font-mono font-black text-foreground leading-none">
+                   ${selectedAccount.balance?.toLocaleString()}
+                 </span>
+                 <div className="w-px h-2 bg-white/10" />
+                 <span className={cn(
+                   "text-[9px] font-black",
+                   selectedAccount.equity >= selectedAccount.balance ? "text-profit-light" : "text-loss-light"
+                 )}>
+                   {selectedAccount.equity >= selectedAccount.balance ? '+' : ''}
+                   {selectedAccount.balance > 0 ? ((selectedAccount.equity / selectedAccount.balance - 1) * 100).toFixed(2) : '0.00'}%
+                 </span>
+               </div>
+               <span className="text-[7px] font-black text-foreground-disabled uppercase tracking-[0.2em] mt-1">EQUITY_REALTIME</span>
+             </div>
+          )}
 
-            {/* Quick Add Button */}
-            <button 
-              className="flex items-center justify-center w-11 h-11 bg-blue-600 rounded-2xl text-white hover:bg-blue-500 transition-all duration-500 shadow-xl shadow-blue-600/20 active:scale-90 group"
-              aria-label="Add trade"
-            >
-              <Plus size={20} className="group-hover:rotate-90 transition-transform duration-500" />
-            </button>
-          </div>
-
-          {/* Clock Widget */}
-          <div className="hidden xl:flex items-center gap-3 px-5 h-11 bg-white/[0.02] border border-white/5 rounded-2xl transition-all duration-500 hover:border-white/10 hover:bg-white/[0.04] group">
-            <Clock size={15} className="text-blue-500 drop-shadow-[0_0_8px_rgba(59,130,246,0.3)]" />
-            <span className="text-[12px] font-black text-white tabular-nums tracking-tighter opacity-80 group-hover:opacity-100 transition-opacity">
-              {isMounted && currentTime ? format(currentTime, 'HH:mm:ss a') : '00:00:00 AM'}
-            </span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {/* Notifications */}
-            <button 
-              className="relative p-3 text-zinc-500 hover:text-white hover:bg-white/5 rounded-2xl transition-all duration-500"
-              aria-label="Notifications"
-            >
-              <Bell size={18} />
-              <div className="absolute top-3.5 right-3.5 w-1.5 h-1.5 bg-blue-500 rounded-full border-2 border-background animate-pulse" />
-            </button>
-
-            {/* Help & Support */}
-            <button 
-              className="p-3 text-zinc-500 hover:text-white hover:bg-white/5 rounded-2xl transition-all duration-500"
-              aria-label="Help"
-            >
-              <HelpCircle size={18} />
-            </button>
-
-            {/* User Profile Mini */}
-            <div className="flex items-center gap-2 pl-6 ml-2 border-l border-white/10">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-zinc-800 to-zinc-950 border border-white/10 overflow-hidden shadow-2xl group cursor-pointer hover:border-blue-500/30 transition-all duration-500 p-0.5">
-                {user?.image ? (
-                  <img src={user.image} alt="User" className="w-full h-full object-cover rounded-[10px]" />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-zinc-900 rounded-[10px] text-[10px] text-white font-black">
-                    PB
-                  </div>
-                )}
-              </div>
+          {/* Clock - Digital Terminal Look */}
+          <div className="hidden lg:flex flex-col items-end px-4 py-1.5 bg-background-tertiary border border-border rounded-xl">
+            <div className="flex items-center gap-2">
+                <div className="h-1 w-1 rounded-full bg-green-500 shadow-[0_0_5px_#22c55e]" />
+                <span className="text-[11px] font-mono font-black text-foreground leading-none" suppressHydrationWarning>
+                    {isMounted && currentTime ? format(currentTime, 'HH:mm:ss') : '00:00:00'}
+                </span>
             </div>
+            <span className="text-[7px] font-black text-foreground-disabled uppercase tracking-[0.2em] mt-1">UTC_REF_01</span>
           </div>
+
+          <div className="flex items-center gap-1 bg-background-tertiary p-1 rounded-2xl border border-border">
+              {/* Add Account Modal Trigger */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowConnectModal(true)}
+                className="w-9 h-9 p-0 rounded-xl hover:bg-white/5"
+                title="Connect MT4/MT5"
+              >
+                <Plus size={16} className="text-foreground-disabled group-hover:text-blue-400" />
+              </Button>
+
+              <div className="w-px h-4 bg-white/5 mx-1" />
+
+              {/* Theme Toggle */}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={toggleTheme}
+                className="w-9 h-9 p-0 rounded-xl hover:bg-white/5"
+              >
+                {isMounted ? (
+                  theme === 'dark' ? (
+                    <Sun size={14} className="text-amber-400" />
+                  ) : (
+                    <Moon size={14} className="text-blue-400" />
+                  )
+                ) : (
+                  <div className="w-4 h-4" />
+                )}
+              </Button>
+          </div>
+
+          {/* User avatar - Glass dropdown */}
+          <button className="flex items-center gap-2 p-1 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] transition-all">
+            <div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center border border-white/10 shadow-lg">
+              {user?.image ? (
+                <img
+                  src={user.image}
+                  alt={user.name || 'User'}
+                  className="w-8 h-8 rounded-xl"
+                />
+              ) : (
+                <span className="text-white text-[10px] font-black">
+                  {user?.name?.charAt(0) || 'U'}
+                </span>
+              )}
+            </div>
+          </button>
         </div>
       </div>
+
+      <ConnectAccountModal isOpen={showConnectModal} onClose={() => setShowConnectModal(false)} />
     </header>
   )
 }
-
-

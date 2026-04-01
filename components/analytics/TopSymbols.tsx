@@ -1,6 +1,6 @@
 'use client'
 
-import { Clock, TrendingUp, TrendingDown } from 'lucide-react'
+import { Activity, Clock } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 interface Trade {
@@ -47,41 +47,52 @@ export function TopSymbols({ trades }: TopSymbolsProps) {
     const formatCurrency = (val: number | string) => {
         const num = typeof val === 'string' ? parseFloat(val) : val;
         if (isNaN(num)) return '$0.00'
-        return num < 0 ? `-$${Math.abs(num).toFixed(2)}` : `$${num.toFixed(2)}`
+        return num < 0 ? `-$${Math.abs(num).toLocaleString(undefined, { minimumFractionDigits: 2 })}` : `$${num.toLocaleString(undefined, { minimumFractionDigits: 2 })}`
     }
 
     return (
-        <div className="bg-[var(--card-bg)] border border-[var(--border)] rounded-xl p-5 h-full">
-            <div className="flex items-center gap-2 mb-6">
-                <Clock className="w-5 h-5 text-[var(--foreground-muted)]" />
+        <div className="bg-[#0a0f1d]/40 border border-white/5 rounded-3xl p-6 h-full flex flex-col">
+            <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-white/5 flex items-center justify-center text-white/40 border border-white/10">
+                    <Clock size={18} />
+                </div>
                 <div>
-                    <h3 className="font-bold text-[var(--foreground)] text-lg">Top Symbols</h3>
-                    <p className="text-xs text-[var(--foreground-muted)]">Best performing assets</p>
+                    <h3 className="text-lg font-black font-jakarta text-white tracking-tight leading-none">Top Symbols</h3>
+                    <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest mt-1">Best performing assets</p>
                 </div>
             </div>
 
             {symbols.length === 0 ? (
-                <div className="flex flex-col items-center justify-center h-40 text-center">
-                    <p className="text-sm text-[var(--foreground-muted)]">No closed trades yet.</p>
+                <div className="flex flex-col items-center justify-center flex-1 py-10 opacity-20">
+                    <Activity size={40} className="mb-4 text-white" />
+                    <p className="text-[10px] font-black uppercase tracking-[0.2em]">System Standby</p>
                 </div>
             ) : (
-                <div className="space-y-3">
+                <div className="space-y-3 flex-1 overflow-y-auto custom-scrollbar pr-1">
                     {symbols.map((sym, index) => (
-                        <div key={sym.symbol} className="bg-[var(--background-tertiary)] p-3 rounded-xl border border-[var(--border)] flex items-center justify-between transition-all hover:bg-[var(--input-bg)]">
+                        <div 
+                            key={sym.symbol} 
+                            className="group flex items-center justify-between p-4 rounded-2xl bg-white/[0.02] border border-white/0 hover:border-white/10 transition-all duration-300"
+                        >
                             <div className="flex items-center gap-4">
-                                <div className="w-6 h-6 rounded bg-[var(--input-bg)] flex items-center justify-center text-xs font-bold text-blue-400">
+                                <div className="w-8 h-8 rounded-lg bg-[#111111] border border-white/5 flex items-center justify-center text-[10px] font-black text-blue-500 shadow-xl">
                                     {index + 1}
                                 </div>
                                 <div>
-                                    <p className="font-bold text-[var(--foreground)]">{sym.symbol}</p>
-                                    <p className="text-xs text-[var(--foreground-muted)]">
+                                    <p className="font-black text-white text-sm font-jakarta tracking-tight">{sym.symbol}</p>
+                                    <p className="text-[9px] font-black text-white/20 uppercase tracking-[0.1em] mt-0.5">
                                         {sym.trades} trades • {sym.winRate.toFixed(0)}% win
                                     </p>
                                 </div>
                             </div>
-                            <p className={cn("font-bold", sym.pnl >= 0 ? "text-blue-400" : "text-red-400")}>
-                                {formatCurrency(sym.pnl)}
-                            </p>
+                            <div className="text-right">
+                                <p className={cn(
+                                    "font-black text-base font-jakarta tracking-tighter",
+                                    sym.pnl >= 0 ? "text-blue-500" : "text-red-500"
+                                )}>
+                                    {formatCurrency(sym.pnl)}
+                                </p>
+                            </div>
                         </div>
                     ))}
                 </div>

@@ -23,9 +23,13 @@ export function Providers({ children }: ProvidersProps) {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <ThemeProvider>{children}</ThemeProvider>
+      <AccountProvider>
+        <ThemeProvider>{children}</ThemeProvider>
+      </AccountProvider>
     </QueryClientProvider>
   )
 }
+
+import { AccountProvider } from '@/contexts/AccountContext'
 
 

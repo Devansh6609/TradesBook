@@ -34,7 +34,7 @@ interface NavItem {
   name: string
   href?: string
   icon: React.ElementType
-  badge?: 'PRO' | 'SOON' | 'NEW' | 'ELITE'
+  badge?: 'PRO' | 'SOON' | 'NEW'
   children?: NavItem[]
 }
 
@@ -46,17 +46,14 @@ const navigation: NavItem[] = [
     name: 'Analysis',
     icon: BarChart3,
     children: [
-      { name: 'Performance', href: '/analysis/performance', icon: TrendingUp },
-      { name: 'Trade Analysis', href: '/analysis/trade-analysis', icon: LineChart },
+      { name: 'Performance', href: '/analytics', icon: TrendingUp },
+      { name: 'Trade Analysis', href: '/analytics/trade-analysis', icon: LineChart },
     ]
   },
-  { name: 'Market', href: '/market/calendar', icon: Store },
-  { name: 'AI Report', href: '/ai-report', icon: Brain, badge: 'PRO' },
-  { name: 'Backtesting', href: '/backtesting', icon: FlaskConical, badge: 'ELITE' },
-  { name: 'Traders Lounge', icon: Users, children: [
-      { name: 'Community', href: '/community', icon: Users },
-      { name: 'Leaderboard', href: '/leaderboard', icon: Crown },
-  ]},
+  { name: 'Market', href: '/market', icon: Store },
+  { name: 'AI Report', href: '/ai-report', icon: Brain, badge: 'NEW' },
+  { name: 'Backtesting', href: '/backtesting', icon: FlaskConical, badge: 'NEW' },
+  { name: 'Traders Lounge', href: '/community', icon: Crown, badge: 'NEW' },
   { name: 'Tools', href: '/tools', icon: Wrench },
 ]
 
@@ -93,19 +90,18 @@ export default function Sidebar() {
     return false
   }
 
-  const renderBadge = (badge?: 'PRO' | 'SOON' | 'NEW' | 'ELITE') => {
+  const renderBadge = (badge?: 'PRO' | 'SOON' | 'NEW') => {
     if (!badge) return null
 
     const styles = {
-      PRO: 'bg-blue-500/10 text-blue-400 border-blue-500/20',
-      SOON: 'bg-amber-500/10 text-amber-400 border-amber-500/20',
-      NEW: 'bg-green-500/10 text-green-400 border-green-500/20',
-      ELITE: 'bg-purple-500/10 text-purple-400 border-purple-500/20',
+      PRO: 'bg-blue-500/20 text-blue-400 border-blue-500/30',
+      SOON: 'bg-amber-500/20 text-amber-400 border-amber-500/30',
+      NEW: 'bg-green-500/20 text-green-400 border-green-500/30',
     }
 
     return (
       <span className={cn(
-        'ml-auto px-1.5 py-0.5 text-[8px] font-black rounded border tracking-widest',
+        'ml-auto px-1.5 py-0.5 text-[10px] font-semibold rounded border',
         styles[badge]
       )}>
         {badge}
@@ -151,23 +147,20 @@ export default function Sidebar() {
     }
 
     return (
-          <Link
-            key={item.href || item.name}
-            href={item.href || '#'}
-            className={cn(
-              'flex items-center gap-3 px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-300 group relative overflow-hidden',
-              active
-                ? 'bg-blue-500/10 text-blue-400'
-                : 'text-foreground-muted hover:text-foreground hover:bg-white/[0.03]'
-            )}
-          >
-            {active && (
-              <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-5 bg-blue-500 rounded-r-full shadow-[0_0_10px_rgba(59,130,246,0.5)]" />
-            )}
-            <Icon size={16} className={cn("transition-colors group-hover:scale-110", active ? "text-blue-400" : "text-foreground-muted")} />
-            <span>{item.name}</span>
-            {renderBadge(item.badge)}
-          </Link>
+      <Link
+        key={item.name}
+        href={item.href || '#'}
+        className={cn(
+          'flex items-center gap-3 px-3 py-2 rounded-xl text-[11px] font-black uppercase tracking-wider transition-all duration-300 group',
+          active
+            ? 'bg-blue-500/10 text-blue-400 border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.1)]'
+            : 'text-foreground-muted hover:text-foreground hover:bg-white/[0.03] border border-transparent'
+        )}
+      >
+        <Icon size={16} className={cn("transition-colors group-hover:scale-110", active ? "text-blue-400" : "text-foreground-muted")} />
+        <span>{item.name}</span>
+        {renderBadge(item.badge)}
+      </Link>
     )
   }
 
@@ -203,48 +196,54 @@ export default function Sidebar() {
         )}
       >
         {/* Logo */}
-        <div className="flex items-center gap-3 h-20 px-6 border-b border-white/5">
+        <div className="flex items-center gap-3 h-16 px-6 border-b border-white/5 bg-white/[0.02]">
           <Link
             href="/dashboard"
             className="flex items-center gap-3 transition-opacity hover:opacity-80"
           >
-            <div className="relative w-8 h-8 p-1">
+            <div className="relative w-9 h-9 p-1.5 bg-blue-500/10 rounded-xl border border-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.2)]">
               <Image
                 src="/logo.png"
-                alt="TradeFXBook Logo"
+                alt="TradesBook Logo"
                 fill
-                className="object-contain"
+                className="object-contain p-1.5"
                 priority
               />
             </div>
             <div className="flex flex-col">
-                <div className="flex items-center gap-1.5">
-                  <span className="font-black text-base tracking-tight text-white leading-none">TradeFXBook</span>
-                  <span className="px-1 py-0.5 bg-amber-500/10 text-amber-500 text-[8px] font-black rounded border border-amber-500/20 tracking-tighter">BETA</span>
-                </div>
+                <span className="font-black text-sm tracking-tight text-foreground leading-none">TRADESBOOK</span>
+                <span className="text-[10px] font-bold text-blue-400/80 tracking-[0.2em] leading-tight">TERMINAL</span>
             </div>
           </Link>
         </div>
+
         {/* User Profile - Premium Compact */}
-        <div className="px-4 py-6">
-          <div className="group/user p-3 rounded-2xl transition-all duration-500 bg-zinc-900/30 border border-white/5 hover:border-blue-500/20 relative">
-            <div className="flex items-center gap-3">
-              <div className="relative">
-                <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-700 flex items-center justify-center text-white text-xs font-black shadow-lg">
-                  PB
+        <div className="px-4 py-5 border-b border-white/5">
+          <div className="group flex items-center gap-3 p-2.5 rounded-2xl bg-white/[0.03] border border-white/5 hover:bg-white/[0.06] hover:border-white/10 transition-all duration-300 cursor-pointer overflow-hidden relative">
+            <div className="absolute top-0 right-0 p-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                <Sparkles size={8} className="text-amber-400 animate-pulse" />
+            </div>
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 flex items-center justify-center flex-shrink-0 shadow-lg group-hover:scale-105 transition-transform">
+              {sessionUser?.image ? (
+                <img
+                  src={sessionUser.image}
+                  alt={sessionUser.name || 'User'}
+                  className="w-10 h-10 rounded-xl"
+                />
+              ) : (
+                <User size={18} className="text-white" />
+              )}
+            </div>
+            <div className="flex-1 min-w-0">
+               <p className="text-xs font-black text-foreground truncate uppercase tracking-wider">
+                  {sessionUser?.name || 'TERMINAL USER'}
+                </p>
+                <div className="flex items-center gap-1.5 mt-0.5">
+                    <div className="h-1.5 w-1.5 rounded-full bg-green-500 shadow-[0_0_8px_#22c55e]" />
+                    <span className="text-[9px] font-bold text-foreground-muted tracking-widest uppercase">
+                        Active Session
+                    </span>
                 </div>
-                <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 rounded-full border-2 border-[#090909]" />
-              </div>
-              <div className="flex flex-col min-w-0">
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] font-black text-white tracking-widest uppercase truncate">Patel</span>
-                  <span className="text-[7px] font-black px-1.5 py-0.5 rounded-md bg-blue-500/10 text-blue-400 border border-blue-500/20">FREE</span>
-                </div>
-                <span className="text-[9px] font-bold text-zinc-600 uppercase tracking-tighter truncate">Trader_ID_042</span>
-              </div>
-              <div className="ml-auto opacity-0 group-hover/user:opacity-100 transition-opacity">
-                <Settings size={12} className="text-zinc-600 hover:text-blue-400 cursor-pointer" />
-              </div>
             </div>
           </div>
         </div>

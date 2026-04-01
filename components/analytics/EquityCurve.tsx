@@ -1,89 +1,87 @@
-'use client'
-
-import { useEffect, useRef } from 'react'
-import { createChart, IChartApi, Time, WhitespaceData, LineData } from 'lightweight-charts'
+import { useEffect, useRef, useState } from 'react'
+import { createChart, IChartApi, Time, WhitespaceData, LineData, ColorType } from 'lightweight-charts'
 import { EquityPoint } from '@/types'
 import { cn } from '@/lib/utils'
+import { TrendingUp, BarChart, Info, MousePointer2 } from 'lucide-react'
 
 interface EquityCurveProps {
   data: EquityPoint[]
   className?: string
   height?: number
+  trades?: any[]
 }
 
-export function EquityCurve({ data, className, height = 400 }: EquityCurveProps) {
+export function EquityCurve({ data, className, height = 400, trades = [] }: EquityCurveProps) {
   const chartContainerRef = useRef<HTMLDivElement>(null)
   const chartRef = useRef<IChartApi | null>(null)
+  const [activeTab, setActiveTab] = useState<'equity' | 'drawdown'>('equity')
 
   useEffect(() => {
     if (!chartContainerRef.current || data.length === 0) return
 
-    // Dynamically import to avoid SSR issues if needed, but createChart is already imported
     const initChart = async () => {
-      // Create chart
       const chart = createChart(chartContainerRef.current!, {
         layout: {
-          background: { color: 'transparent' },
-          textColor: '#a1a1aa',
+          background: { type: ColorType.Solid, color: 'transparent' },
+          textColor: '#ffffff20',
+          fontSize: 10,
+          fontFamily: 'Plus Jakarta Sans',
         },
         grid: {
-          vertLines: { color: '#27272a' },
-          horzLines: { color: '#27272a' },
+          vertLines: { color: '#ffffff03' },
+          horzLines: { color: '#ffffff03' },
         },
         crosshair: {
           mode: 1,
           vertLine: {
-            color: '#3b82f6',
+            color: '#3b82f640',
             width: 1,
             style: 2,
             labelBackgroundColor: '#3b82f6',
           },
           horzLine: {
-            color: '#3b82f6',
+            color: '#3b82f640',
             width: 1,
             style: 2,
             labelBackgroundColor: '#3b82f6',
           },
         },
         rightPriceScale: {
-          borderColor: '#27272a',
+          borderColor: '#ffffff05',
+          alignLabels: true,
+          scaleMargins: {
+            top: 0.2,
+            bottom: 0.2,
+          },
         },
         timeScale: {
-          borderColor: '#27272a',
+          borderColor: '#ffffff05',
           timeVisible: true,
+          secondsVisible: false,
         },
-        height,
+        height: height - 100, // Account for header space
       })
 
       chartRef.current = chart
 
-      // Add equity series (main line)
-      // Cast to any because the installed version seems to have mixed v3/v4 types
-      const equitySeries = (chart as any).addAreaSeries({
+      // Add equity series
+      const series = chart.addAreaSeries({
         lineColor: '#3b82f6',
-        topColor: 'rgba(59, 130, 246, 0.4)',
-        bottomColor: 'rgba(59, 130, 246, 0.05)',
+        topColor: 'rgba(59, 130, 246, 0.2)',
+        bottomColor: 'rgba(59, 130, 246, 0.01)',
         lineWidth: 2,
-        title: 'Equity',
+        priceFormat: {
+            type: 'price',
+            precision: 2,
+            minMove: 0.01,
+        },
       })
 
-      // Add drawdown series (secondary area)
-      const drawdownSeries = (chart as any).addAreaSeries({
-        lineColor: '#ef4444',
-        topColor: 'rgba(239, 68, 68, 0.3)',
-        bottomColor: 'rgba(239, 68, 68, 0.05)',
-        lineWidth: 1,
-        title: 'Drawdown',
-      })
-
-      // Set data and ensure it is sorted strictly ascending with unique timestamps
-      const uniqueDataMap = new Map<number, { value: number; drawdown: number }>()
+      const uniqueDataMap = new Map<number, { value: number }>()
 
       data.forEach(point => {
-        // Lightweight charts requires time in seconds for Unix Timestamps
         const timeInSeconds = Math.floor(new Date(point.time).getTime() / 1000)
-        // If there are multiple trades in the exact same second, we keep the last one (or we could sum them, but last state of equity makes sense)
-        uniqueDataMap.set(timeInSeconds, { value: point.value, drawdown: point.drawdown })
+        uniqueDataMap.set(timeInSeconds, { value: point.value })
       })
 
       const sortedTimes = Array.from(uniqueDataMap.keys()).sort((a, b) => a - b)
@@ -93,18 +91,9 @@ export function EquityCurve({ data, className, height = 400 }: EquityCurveProps)
         value: uniqueDataMap.get(time)!.value,
       }))
 
-      const drawdownData: (LineData<Time> | WhitespaceData<Time>)[] = sortedTimes.map(time => ({
-        time: time as Time,
-        value: uniqueDataMap.get(time)!.drawdown,
-      }))
-
-      equitySeries.setData(equityData)
-      drawdownSeries.setData(drawdownData)
-
-      // Fit content
+      series.setData(equityData)
       chart.timeScale().fitContent()
 
-      // Handle resize
       const handleResize = () => {
         if (chartContainerRef.current) {
           chart.applyOptions({ width: chartContainerRef.current.clientWidth })
@@ -123,22 +112,63 @@ export function EquityCurve({ data, className, height = 400 }: EquityCurveProps)
     return () => {
       cleanup.then(cleanupFn => cleanupFn?.())
     }
-  }, [data, height])
-
-  if (data.length === 0) {
-    return (
-      <div className={cn(
-        'flex items-center justify-center bg-background-secondary rounded-xl border border-border',
-        className
-      )} style={{ height }}>
-        <p className="text-foreground-muted">No data available</p>
-      </div>
-    )
-  }
+  }, [data, height, activeTab])
 
   return (
-    <div className={cn('relative', className)}>
-      <div ref={chartContainerRef} className="rounded-xl overflow-hidden" />
+    <div className={cn('bg-[#0a0a0a] border border-white/5 rounded-2xl p-8 flex flex-col', className)} style={{ height }}>
+       <div className="flex items-center justify-between mb-10">
+          <div className="flex items-center gap-4">
+             <div className="w-10 h-10 rounded-xl bg-blue-500/10 flex items-center justify-center text-blue-500 border border-blue-500/20">
+                <TrendingUp size={20} />
+             </div>
+             <div>
+                <h3 className="text-base font-black text-white/90 font-jakarta tracking-tight">Equity Curve</h3>
+                <p className="text-[10px] font-bold text-white/30 uppercase tracking-[0.15em] mt-0.5">Cumulative P&L progression</p>
+             </div>
+          </div>
+
+          <div className="flex items-center gap-1 bg-white/5 p-1 rounded-xl">
+             <button 
+                onClick={() => setActiveTab('equity')}
+                className={cn(
+                  "px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
+                  activeTab === 'equity' ? "bg-white/10 text-white" : "text-white/20 hover:text-white/40"
+                )}
+             >
+                Equity
+             </button>
+             <button 
+                onClick={() => setActiveTab('drawdown')}
+                className={cn(
+                  "px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all",
+                  activeTab === 'drawdown' ? "bg-white/10 text-white" : "text-white/20 hover:text-white/40"
+                )}
+             >
+                Drawdown
+             </button>
+          </div>
+       </div>
+
+       <div className="flex-1 w-full relative">
+          {data.length === 0 ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-center">
+               <div className="relative mb-6">
+                  <div className="w-20 h-20 rounded-full bg-blue-500/5 animate-pulse" />
+                  <div className="absolute inset-0 flex items-center justify-center">
+                     <div className="w-12 h-12 rounded-2xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.15)]">
+                        <TrendingUp size={24} strokeWidth={2.5} />
+                     </div>
+                  </div>
+               </div>
+               <h4 className="text-sm font-black text-white/80 uppercase tracking-[0.2em] mb-2">Awaiting Execution</h4>
+               <p className="text-[11px] font-medium text-white/20 max-w-[200px] leading-relaxed uppercase tracking-wider">
+                  Close more trades to see your equity curve progression
+               </p>
+            </div>
+          ) : (
+            <div ref={chartContainerRef} className="w-full h-full" />
+          )}
+       </div>
     </div>
   )
 }

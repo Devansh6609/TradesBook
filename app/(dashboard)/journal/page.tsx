@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useRef } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   BookOpen, Clock, ChevronRight, BarChart3, Save, Loader2,
@@ -35,6 +35,7 @@ export default function JournalPage() {
   const queryClient = useQueryClient()
   const [activeTab, setActiveTab] = useState('all')
   const [selectedTradeId, setSelectedTradeId] = useState<string | null>(null)
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const [journalData, setJournalData] = useState({
     preTradeAnalysis: '',
     postTradeAnalysis: '',
@@ -87,6 +88,41 @@ export default function JournalPage() {
       toast.error(error.message || 'Failed to save journal')
     },
   })
+
+  // Screenshot mutations
+  const uploadScreenshotMutation = useMutation({
+    mutationFn: async ({ tradeId, file }: { tradeId: string; file: File }) => {
+      return api.screenshots.upload(tradeId, file)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trades'] })
+      toast.success('Screenshot uploaded!')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to upload screenshot')
+    }
+  })
+
+  const deleteScreenshotMutation = useMutation({
+    mutationFn: async ({ tradeId, screenshotId }: { tradeId: string; screenshotId: string }) => {
+      return api.screenshots.delete(tradeId, screenshotId)
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['trades'] })
+      toast.success('Screenshot deleted')
+    },
+    onError: (error: Error) => {
+      toast.error(error.message || 'Failed to delete screenshot')
+    }
+  })
+
+  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (file && selectedTradeId) {
+      uploadScreenshotMutation.mutate({ tradeId: selectedTradeId, file })
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
 
   const trades = tradesData?.trades || []
   const selectedTrade = trades.find(t => t.id === selectedTradeId)
@@ -449,10 +485,52 @@ export default function JournalPage() {
                 <label className="flex items-center gap-2 text-xs font-medium text-[var(--foreground-muted)] mb-3">
                   📸 SCREENSHOTS
                 </label>
-                <button className="w-32 h-24 flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--border)] rounded-lg text-[var(--foreground-muted)] hover:border-[var(--border-hover)] hover:text-[var(--foreground)] transition-colors">
-                  <Plus size={20} />
-                  <span className="text-xs">Add Image</span>
-                </button>
+                
+                <div className="flex flex-wrap gap-3">
+                  {selectedTrade.screenshots?.map((ss: any) => (
+                    <div key={ss.id} className="relative group w-32 h-24 rounded-lg overflow-hidden border border-[var(--border)] bg-[var(--background-tertiary)]">
+                      <img 
+                        src={api.screenshots.getUrl(ss.url)} 
+                        alt="Trade Screenshot" 
+                        className="w-full h-full object-cover cursor-zoom-in transition-transform duration-300 group-hover:scale-105"
+                        onClick={() => window.open(api.screenshots.getUrl(ss.url), '_blank')}
+                      />
+                      <button 
+                        onClick={() => deleteScreenshotMutation.mutate({ tradeId: selectedTrade.id, screenshotId: ss.id })}
+                        className="absolute top-1 right-1 p-1 bg-black/60 text-white rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-500 shadow-lg"
+                        title="Delete Screenshot"
+                        aria-label="Delete Screenshot"
+                      >
+                        <X size={12} />
+                      </button>
+                    </div>
+                  ))}
+
+                  <input 
+                    type="file" 
+                    ref={fileInputRef} 
+                    className="hidden" 
+                    accept="image/*"
+                    onChange={handleFileSelect}
+                    aria-label="Upload Screenshot"
+                    title="Upload Screenshot"
+                  />
+                  
+                  <button 
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={uploadScreenshotMutation.isPending}
+                    className="w-32 h-24 flex flex-col items-center justify-center gap-2 border border-dashed border-[var(--border)] rounded-lg text-[var(--foreground-muted)] hover:border-blue-500/50 hover:text-[var(--foreground)] hover:bg-blue-500/5 transition-all disabled:opacity-50"
+                  >
+                    {uploadScreenshotMutation.isPending ? (
+                      <Loader2 size={24} className="animate-spin text-blue-500" />
+                    ) : (
+                      <Plus size={24} />
+                    )}
+                    <span className="text-xs font-medium">
+                      {uploadScreenshotMutation.isPending ? 'Uploading...' : 'Add Image'}
+                    </span>
+                  </button>
+                </div>
               </div>
 
               {/* Trade Summary Card */}

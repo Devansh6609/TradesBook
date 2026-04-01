@@ -17,14 +17,12 @@ analytics.get('/live', async (c) => {
   const userId = c.get('userId');
 
   try {
-    // 1. Get balance/equity from settings
     const settings = await queryOne<{ accountBalance: number; unrealizedPnl: number }>(
       c.env.DB,
       `SELECT accountBalance, unrealizedPnl FROM settings WHERE userId = ?`,
       [userId],
     );
 
-    // 2. Get trade counts/stats
     const stats = await queryOne<{ 
       open: number; 
       closed: number; 
@@ -55,13 +53,11 @@ analytics.get('/live', async (c) => {
       [userId],
     );
 
-    // Auto-expire stale sync_requests older than 2 minutes so the banner doesn't stay stuck
     await c.env.DB.prepare(`
       UPDATE sync_requests SET status = 'COMPLETED', updatedAt = unixepoch()
       WHERE userId = ? AND status IN ('PENDING', 'PROCESSING') AND createdAt < (unixepoch() - 120)
     `).bind(userId).run();
 
-    // 3. Check if there's a *recent* (under 2 min) sync in progress
     const activeSync = await queryOne<{ id: string }>(
       c.env.DB,
       `SELECT id FROM sync_requests WHERE userId = ? AND status IN ('PENDING', 'PROCESSING') ORDER BY createdAt DESC LIMIT 1`,
@@ -76,7 +72,7 @@ analytics.get('/live', async (c) => {
 
     return c.json({
       initialBalance,
-      accountBalance: initialBalance, // Legacy compatibility
+      accountBalance: initialBalance,
       unrealizedPnl,
       equity,
       openTrades: stats?.open ?? 0,
@@ -188,7 +184,6 @@ analytics.get('/overview', async (c) => {
       [userId],
     );
 
-    // Monthly P&L for chart
     const monthly = await queryMany<{ month: string; pnl: number | null; trades: number }>(
       c.env.DB,
       `SELECT
@@ -261,7 +256,6 @@ analytics.get('/daily-pnl', async (c) => {
       params,
     );
 
-    // Calculate cumulative P&L
     let cumulative = 0;
     const result = rows.map((r) => {
       cumulative += r.dayPnl;
@@ -286,7 +280,6 @@ analytics.get('/', async (c) => {
   const { period, filter } = c.req.query();
 
   try {
-    // 1. Get initial balance from settings
     const settings = await queryOne<{ accountBalance: number; unrealizedPnl: number }>(
       c.env.DB,
       `SELECT accountBalance, unrealizedPnl FROM settings WHERE userId = ?`,
@@ -295,7 +288,6 @@ analytics.get('/', async (c) => {
     const initialBalance = settings?.accountBalance ?? 0;
     const unrealizedPnl = settings?.unrealizedPnl ?? 0;
 
-    // 2. Build trade filters
     const conditions: string[] = ['userId = ?', "status = 'CLOSED'"];
     const bindings: any[] = [userId];
 
@@ -316,7 +308,6 @@ analytics.get('/', async (c) => {
 
     const where = conditions.join(' AND ');
 
-    // 3. Get basic stats (Win/Loss, P&L totals)
     const stats = await queryOne<{
       totalCount: number;
       winningTrades: number;
@@ -327,7 +318,8 @@ analytics.get('/', async (c) => {
       grossLoss: number;
       avgWinner: number;
       avgLoser: number;
-      avgHoldTime: number;
+      maxPnl: number;
+      minPnl: number;
     }>(
       c.env.DB,
       `SELECT
@@ -340,19 +332,19 @@ analytics.get('/', async (c) => {
          SUM(CASE WHEN pnl < 0 THEN pnl ELSE 0 END) as grossLoss,
          AVG(CASE WHEN pnl > 0 THEN pnl END) as avgWinner,
          AVG(CASE WHEN pnl < 0 THEN pnl END) as avgLoser,
-         AVG(exitDate - entryDate) as avgHoldTime
+         MAX(pnl) as maxPnl,
+         MIN(pnl) as minPnl
        FROM trades
        WHERE ${where}`,
       bindings,
     );
 
-    // 4. Get Daily P&L for Calendar/Chart
-    const dailyRows = await queryMany<{ date: string; pnl: number; trades: number }>(
+    const dailyRows = await queryMany<{ date: string; pnl: number; tradesCount: number }>(
       c.env.DB,
       `SELECT
          strftime('%Y-%m-%d', datetime(exitDate, 'unixepoch')) as date,
          SUM(netPnl) as pnl,
-         COUNT(*) as trades
+         COUNT(*) as tradesCount
        FROM trades
        WHERE ${where}
        GROUP BY date
@@ -360,7 +352,6 @@ analytics.get('/', async (c) => {
       bindings,
     );
 
-    // 5. Get Equity Curve (Cumulative P&L)
     let runningEquity = initialBalance;
     const equityCurve = dailyRows.map((r) => {
       runningEquity += r.pnl;
@@ -371,19 +362,16 @@ analytics.get('/', async (c) => {
       };
     });
 
-    // 6. Get Recent Trades (increased limit for calendar detail view)
     const recentTradesRows = await queryMany<any>(
       c.env.DB,
       `SELECT * FROM trades WHERE userId = ? ORDER BY exitDate DESC LIMIT 500`,
       [userId],
     );
 
-    // 7. Calculate Advanced Metrics
     const winRate = (stats?.totalCount ?? 0) > 0 ? ((stats?.winningTrades ?? 0) / stats!.totalCount) * 100 : 0;
     const profitFactor = Math.abs(stats?.grossLoss ?? 0) > 0 ? (stats?.grossProfit ?? 0) / Math.abs(stats!.grossLoss) : (stats?.grossProfit ?? 0) > 0 ? Infinity : 0;
     const expectancy = (stats?.totalCount ?? 0) > 0 ? (stats?.totalPnl ?? 0) / stats!.totalCount : 0;
 
-    // Calculate streaks (from all closed trades)
     const allClosed = await queryMany<{ pnl: number }>(
       c.env.DB,
       `SELECT pnl FROM trades WHERE userId = ? AND status = 'CLOSED' ORDER BY exitDate ASC`,
@@ -401,9 +389,7 @@ analytics.get('/', async (c) => {
       }
     }
 
-    const avgWin = stats?.avgWinner || 0;
-    const avgLoss = Math.abs(stats?.avgLoser || 0);
-    const rrRatio = avgLoss > 0 ? avgWin / avgLoss : 0;
+    const rrRatio = Math.abs(stats?.avgLoser ?? 0) > 0 ? (stats?.avgWinner ?? 0) / Math.abs(stats!.avgLoser) : 0;
 
     const openTradesCount = await queryOne<{ cnt: number }>(
       c.env.DB,
@@ -411,7 +397,6 @@ analytics.get('/', async (c) => {
       [userId]
     );
 
-    // 8. Monthly Stats
     const monthlyRows = await queryMany<{ month: string; pnl: number; tradesCount: number }>(
       c.env.DB,
       `SELECT
@@ -424,6 +409,97 @@ analytics.get('/', async (c) => {
        ORDER BY month ASC`,
       [userId],
     );
+
+    // 9. Day of Week Performance
+    const dayOfWeekRows = await queryMany<{ dayIndex: number; pnl: number; tradesCount: number; wins: number }>(
+      c.env.DB,
+      `SELECT
+         CAST(strftime('%w', datetime(exitDate, 'unixepoch')) AS INTEGER) as dayIndex,
+         SUM(netPnl) as pnl,
+         COUNT(*) as tradesCount,
+         SUM(CASE WHEN netPnl > 0 THEN 1 ELSE 0 END) as wins
+       FROM trades
+       WHERE ${where}
+       GROUP BY dayIndex`,
+      bindings,
+    );
+
+    const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    const dayOfWeekPerformance = dayNames.map((name, index) => {
+      const row = dayOfWeekRows.find(r => r.dayIndex === index);
+      return {
+        day: name,
+        pnl: row?.pnl ?? 0,
+        trades: row?.tradesCount ?? 0,
+        winRate: (row?.tradesCount ?? 0) > 0 ? (row!.wins / row!.tradesCount) * 100 : 0
+      };
+    });
+
+    // 10. Long/Short Performance
+    const longShortRows = await queryMany<{ type: string; pnl: number; tradesCount: number; wins: number; bestTrade: number }>(
+      c.env.DB,
+      `SELECT
+         type,
+         SUM(netPnl) as pnl,
+         COUNT(*) as tradesCount,
+         SUM(CASE WHEN netPnl > 0 THEN 1 ELSE 0 END) as wins,
+         MAX(netPnl) as bestTrade
+       FROM trades
+       WHERE ${where}
+       GROUP BY type`,
+      bindings,
+    );
+
+    const longStats = longShortRows.find(r => r.type === 'BUY' || r.type === 'LONG');
+    const shortStats = longShortRows.find(r => r.type === 'SELL' || r.type === 'SHORT');
+
+    const longShortPerformance = {
+      long: {
+        wins: longStats?.wins ?? 0,
+        losses: (longStats?.tradesCount ?? 0) - (longStats?.wins ?? 0),
+        pnl: longStats?.pnl ?? 0,
+        trades: longStats?.tradesCount ?? 0,
+        winRate: (longStats?.tradesCount ?? 0) > 0 ? (longStats!.wins / longStats!.tradesCount) * 100 : 0,
+        bestTrade: longStats?.bestTrade ?? 0
+      },
+      short: {
+        wins: shortStats?.wins ?? 0,
+        losses: (shortStats?.tradesCount ?? 0) - (shortStats?.wins ?? 0),
+        pnl: shortStats?.pnl ?? 0,
+        trades: shortStats?.tradesCount ?? 0,
+        winRate: (shortStats?.tradesCount ?? 0) > 0 ? (shortStats!.wins / shortStats!.tradesCount) * 100 : 0,
+        bestTrade: shortStats?.bestTrade ?? 0
+      }
+    };
+
+    // 11. Session Performance (UTC)
+    const sessionRows = await queryMany<{ session: string; pnl: number; tradesCount: number; wins: number }>(
+      c.env.DB,
+      `SELECT
+         CASE
+           WHEN CAST(strftime('%H', datetime(entryDate, 'unixepoch')) AS INTEGER) >= 22 OR CAST(strftime('%H', datetime(entryDate, 'unixepoch')) AS INTEGER) < 8 THEN 'Asian'
+           WHEN CAST(strftime('%H', datetime(entryDate, 'unixepoch')) AS INTEGER) >= 8 AND CAST(strftime('%H', datetime(entryDate, 'unixepoch')) AS INTEGER) < 13 THEN 'London'
+           WHEN CAST(strftime('%H', datetime(entryDate, 'unixepoch')) AS INTEGER) >= 13 AND CAST(strftime('%H', datetime(entryDate, 'unixepoch')) AS INTEGER) < 22 THEN 'New York'
+           ELSE 'Other'
+         END as session,
+         SUM(netPnl) as pnl,
+         COUNT(*) as tradesCount,
+         SUM(CASE WHEN netPnl > 0 THEN 1 ELSE 0 END) as wins
+       FROM trades
+       WHERE ${where}
+       GROUP BY session`,
+      bindings,
+    );
+
+    const sessionPerformance = ['Asian', 'London', 'New York'].map(name => {
+      const row = sessionRows.find(r => r.session === name);
+      return {
+        session: name,
+        pnl: row?.pnl ?? 0,
+        trades: row?.tradesCount ?? 0,
+        winRate: (row?.tradesCount ?? 0) > 0 ? (row!.wins / row!.tradesCount) * 100 : 0
+      };
+    });
 
     return c.json({
       initialBalance,
@@ -440,37 +516,28 @@ analytics.get('/', async (c) => {
       avgLoser: (stats?.avgLoser ?? 0).toFixed(2),
       profitFactor,
       expectancy,
-      bestTrade: (stats?.avgWinner ?? 0).toFixed(2), // placeholder or MAX(pnl)
-      worstTrade: (stats?.avgLoser ?? 0).toFixed(2), // placeholder or MIN(pnl)
+      bestTrade: (stats?.maxPnl ?? 0).toFixed(2),
+      worstTrade: (stats?.minPnl ?? 0).toFixed(2),
       winStreak: maxWinStreak,
       lossStreak: maxLossStreak,
       riskRewardRatio: rrRatio.toFixed(2),
       openTrades: openTradesCount?.cnt ?? 0,
       equityCurve: equityCurve.map(e => ({
         ...e,
-        time: e.date, // for component compatibility
+        time: e.date,
         value: e.equity,
-        drawdown: 0 // simple for now
+        drawdown: 0
       })),
-      dailyPnL: dailyRows,
+      dailyPnL: dailyRows.map(r => ({ date: r.date, pnl: r.pnl, trades: r.tradesCount })),
       trades: recentTradesRows,
       monthlyStats: monthlyRows.map(m => ({ 
         month: m.month, 
         profit: m.pnl, 
         trades: m.tradesCount 
       })),
-      // Day of week performance
-      dayOfWeekPerformance: [
-        { day: 'Mon', pnl: 0, trades: 0, winRate: 0 },
-        { day: 'Tue', pnl: 0, trades: 0, winRate: 0 },
-        { day: 'Wed', pnl: 0, trades: 0, winRate: 0 },
-        { day: 'Thu', pnl: 0, trades: 0, winRate: 0 },
-        { day: 'Fri', pnl: 0, trades: 0, winRate: 0 },
-      ],
-      longShortPerformance: {
-        long: { wins: 0, losses: 0, pnl: 0, trades: 0, winRate: 0, bestTrade: 0 },
-        short: { wins: 0, losses: 0, pnl: 0, trades: 0, winRate: 0, bestTrade: 0 },
-      }
+      sessionPerformance,
+      dayOfWeekPerformance,
+      longShortPerformance
     });
   } catch (error: any) {
     console.error("Error in comprehensive analytics:", error);

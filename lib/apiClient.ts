@@ -1,8 +1,32 @@
-// lib/apiClient.ts
-// Typed fetch wrapper — calls the Cloudflare Worker API
-// Reads NEXT_PUBLIC_API_URL from env (set in .env.local)
 import { Trade, MarketCondition, Emotion, TradeTag, Screenshot, Strategy, PartialClose, Tag, DailyPnLPoint } from '@/types';
-export type { Trade };
+
+export interface TradingAccount {
+  id: string;
+  name: string;
+  broker: string;
+  accountNumber: string;
+  platform: 'MT4' | 'MT5';
+  balance: number;
+  equity: number;
+  currency: string;
+  leverage: number;
+  isPublic: boolean;
+  isVerified: boolean;
+  lastSyncAt: string | null;
+  status: 'ACTIVE' | 'PENDING' | 'ERROR' | 'DISCONNECTED';
+}
+
+export interface ConnectAccountInput {
+  name: string;
+  broker: string;
+  server: string;
+  login: string;
+  password?: string;
+  investorPassword?: string;
+  platform: 'MT4' | 'MT5';
+}
+
+export type { Trade, Strategy, Tag, DailyPnLPoint };
 
 const API_URL =
   process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:8787';
@@ -128,6 +152,7 @@ export const api = {
     },
     delete: (tradeId: string, screenshotId: string) =>
       request<{ message: string }>(`/api/trades/${tradeId}/screenshots/${screenshotId}`, { method: 'DELETE' }),
+    getUrl: (key: string) => `${API_URL}/api/images/${key}`,
   },
 
   // ─── Strategies ──────────────────────────────────────────────────────────
@@ -184,6 +209,24 @@ export const api = {
       }>('/api/analytics/live'),
   },
 
+  // ─── Accounts ────────────────────────────────────────────────────────────
+  accounts: {
+    list: () => request<{ accounts: TradingAccount[] }>('/api/accounts'),
+    get: (id: string) => request<TradingAccount>(`/api/accounts/${id}`),
+    update: (id: string, data: Partial<TradingAccount>) =>
+      request<TradingAccount>(`/api/accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) => request<{ message: string }>(`/api/accounts/${id}`, { method: 'DELETE' }),
+  },
+
+  // ─── MT5/MT4 Connection ──────────────────────────────────────────────────
+  mt5: {
+    connect: (data: ConnectAccountInput) =>
+      request<{ account: TradingAccount }>('/api/mt5/connect', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+  },
+
   // ─── Sync ────────────────────────────────────────────────────────────────
   sync: {
     request: (data: { type: 'COUNT' | 'DATE' | 'ALL'; value: string }) =>
@@ -215,11 +258,10 @@ export const api = {
 export interface UserProfile {
   id: string; email: string; name: string | null; image: string | null; reputation?: number;
 }
-export type { Strategy, Tag, DailyPnLPoint };
 export interface TradeListResponse {
   trades: Trade[];
   pagination: { total: number; page: number; limit: number; totalPages: number };
-  stats: { totalTrades: number; winningTrades: number; losingTrades: number; winRate: number; totalPnl: number; totalNetPnl: number };
+  stats: { totalTrades: number; winningTrades: number; losingTrades: number; winRate: number; totalPnl: number; totalNetPnl: number; avgPips: number; dailyProfit: number };
 }
 export type CreateTradeInput = Pick<Trade, 'symbol' | 'type' | 'entryPrice' | 'quantity'> & Partial<Trade> & {
   tagIds?: string[];
@@ -272,3 +314,4 @@ export interface AnalyticsData {
 export interface NewsItem { title: string; link: string; date: string; description: string; source: string; }
 export interface Post { id: string; userId: string; user?: UserProfile; content: string; createdAt: string; likes: number; comments: number; }
 export interface LeaderboardEntry { userId: string; name: string; winRate: number; profit: number; totalTrades: number; }
+

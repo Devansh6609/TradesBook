@@ -294,9 +294,10 @@ analytics.get('/', async (c) => {
     if (period && period !== 'all') {
       let days = 30;
       if (period === '7d') days = 7;
+      else if (period === '30d') days = 30;
       else if (period === '3m') days = 90;
       else if (period === '1y') days = 365;
-      conditions.push(`datetime(exitDate, 'unixepoch') >= datetime('now', ?)`);
+      conditions.push(`datetime(CASE WHEN exitDate > 10000000000 THEN exitDate / 1000 ELSE exitDate END, 'unixepoch') >= datetime('now', ?)`);
       bindings.push(`-${days} days`);
     }
 
@@ -342,7 +343,7 @@ analytics.get('/', async (c) => {
     const dailyRows = await queryMany<{ date: string; pnl: number; tradesCount: number }>(
       c.env.DB,
       `SELECT
-         strftime('%Y-%m-%d', datetime(exitDate, 'unixepoch')) as date,
+         strftime('%Y-%m-%d', datetime(CASE WHEN exitDate > 10000000000 THEN exitDate / 1000 ELSE exitDate END, 'unixepoch')) as date,
          SUM(netPnl) as pnl,
          COUNT(*) as tradesCount
        FROM trades
@@ -414,7 +415,7 @@ analytics.get('/', async (c) => {
     const dayOfWeekRows = await queryMany<{ dayIndex: number; pnl: number; tradesCount: number; wins: number }>(
       c.env.DB,
       `SELECT
-         CAST(strftime('%w', datetime(exitDate, 'unixepoch')) AS INTEGER) as dayIndex,
+         CAST(strftime('%w', datetime(CASE WHEN exitDate > 10000000000 THEN exitDate / 1000 ELSE exitDate END, 'unixepoch')) AS INTEGER) as dayIndex,
          SUM(netPnl) as pnl,
          COUNT(*) as tradesCount,
          SUM(CASE WHEN netPnl > 0 THEN 1 ELSE 0 END) as wins
@@ -436,22 +437,26 @@ analytics.get('/', async (c) => {
     });
 
     // 10. Long/Short Performance
-    const longShortRows = await queryMany<{ type: string; pnl: number; tradesCount: number; wins: number; bestTrade: number }>(
+    const longShortRows = await queryMany<{ normalizedType: string; pnl: number; tradesCount: number; wins: number; bestTrade: number }>(
       c.env.DB,
       `SELECT
-         type,
+         CASE 
+           WHEN UPPER(type) IN ('BUY', 'LONG') THEN 'Long'
+           WHEN UPPER(type) IN ('SELL', 'SHORT') THEN 'Short'
+           ELSE 'Other'
+         END as normalizedType,
          SUM(netPnl) as pnl,
          COUNT(*) as tradesCount,
          SUM(CASE WHEN netPnl > 0 THEN 1 ELSE 0 END) as wins,
          MAX(netPnl) as bestTrade
        FROM trades
        WHERE ${where}
-       GROUP BY type`,
+       GROUP BY normalizedType`,
       bindings,
     );
 
-    const longStats = longShortRows.find(r => r.type === 'BUY' || r.type === 'LONG');
-    const shortStats = longShortRows.find(r => r.type === 'SELL' || r.type === 'SHORT');
+    const longStats = longShortRows.find(r => r.normalizedType === 'Long');
+    const shortStats = longShortRows.find(r => r.normalizedType === 'Short');
 
     const longShortPerformance = {
       long: {
@@ -473,26 +478,27 @@ analytics.get('/', async (c) => {
     };
 
     // 11. Session Performance (UTC)
-    const sessionRows = await queryMany<{ session: string; pnl: number; tradesCount: number; wins: number }>(
+    const sessionRows = await queryMany<{ sessionName: string; pnl: number; tradesCount: number; wins: number }>(
       c.env.DB,
       `SELECT
          CASE
-           WHEN CAST(strftime('%H', datetime(entryDate, 'unixepoch')) AS INTEGER) >= 22 OR CAST(strftime('%H', datetime(entryDate, 'unixepoch')) AS INTEGER) < 8 THEN 'Asian'
-           WHEN CAST(strftime('%H', datetime(entryDate, 'unixepoch')) AS INTEGER) >= 8 AND CAST(strftime('%H', datetime(entryDate, 'unixepoch')) AS INTEGER) < 13 THEN 'London'
-           WHEN CAST(strftime('%H', datetime(entryDate, 'unixepoch')) AS INTEGER) >= 13 AND CAST(strftime('%H', datetime(entryDate, 'unixepoch')) AS INTEGER) < 22 THEN 'New York'
+           WHEN entryDate IS NULL THEN 'Other'
+           WHEN CAST(strftime('%H', datetime(CASE WHEN entryDate > 10000000000 THEN entryDate/1000 ELSE entryDate END, 'unixepoch')) AS INTEGER) >= 22 OR CAST(strftime('%H', datetime(CASE WHEN entryDate > 10000000000 THEN entryDate/1000 ELSE entryDate END, 'unixepoch')) AS INTEGER) < 8 THEN 'Asian'
+           WHEN CAST(strftime('%H', datetime(CASE WHEN entryDate > 10000000000 THEN entryDate/1000 ELSE entryDate END, 'unixepoch')) AS INTEGER) >= 8 AND CAST(strftime('%H', datetime(CASE WHEN entryDate > 10000000000 THEN entryDate/1000 ELSE entryDate END, 'unixepoch')) AS INTEGER) < 13 THEN 'London'
+           WHEN CAST(strftime('%H', datetime(CASE WHEN entryDate > 10000000000 THEN entryDate/1000 ELSE entryDate END, 'unixepoch')) AS INTEGER) >= 13 AND CAST(strftime('%H', datetime(CASE WHEN entryDate > 10000000000 THEN entryDate/1000 ELSE entryDate END, 'unixepoch')) AS INTEGER) < 22 THEN 'New York'
            ELSE 'Other'
-         END as session,
+         END as sessionName,
          SUM(netPnl) as pnl,
          COUNT(*) as tradesCount,
          SUM(CASE WHEN netPnl > 0 THEN 1 ELSE 0 END) as wins
        FROM trades
        WHERE ${where}
-       GROUP BY session`,
+       GROUP BY sessionName`,
       bindings,
     );
 
     const sessionPerformance = ['Asian', 'London', 'New York'].map(name => {
-      const row = sessionRows.find(r => r.session === name);
+      const row = sessionRows.find(r => r.sessionName === name);
       return {
         session: name,
         pnl: row?.pnl ?? 0,

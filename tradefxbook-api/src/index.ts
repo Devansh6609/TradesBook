@@ -15,6 +15,7 @@ import settings  from './routes/settings';
 import analytics from './routes/analytics';
 import mt5       from './routes/mt5';
 import images    from './routes/images';
+import ai        from './routes/ai';
 
 // ─── Bindings type (matches wrangler.toml) ───────────────────────────────────
 export type Bindings = {
@@ -23,6 +24,7 @@ export type Bindings = {
   JWT_SECRET: string;       // set via: npx wrangler secret put JWT_SECRET
   ENVIRONMENT: string;
   FRONTEND_URL: string;
+  AI: import('@cloudflare/workers-types').Ai;
 };
 
 export type Variables = {
@@ -69,6 +71,7 @@ app.route('/api/settings', settings);
 app.route('/api/analytics', analytics);
 app.route('/api/mt5-webhook', mt5);
 app.route('/api/images', images);
+app.route('/api/ai-analysis', ai);
 
 // ─── 404 fallback ────────────────────────────────────────────────────────────
 app.notFound((c) => c.json({ error: 'Route not found' }, 404));

@@ -11,7 +11,7 @@ compatibility_flags = ["nodejs_compat"]
 [[d1_databases]]
 binding = "DB"
 database_name = "tradefxbook-db"
-database_id = "d4d5d4b7-9b20-4da8-a7b2-f0b3a0e18390"
+database_id = "54401825-105b-4c83-b9d4-ec57b0b53ea7"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # R2 Bucket (screenshots storage)
@@ -32,3 +32,9 @@ FRONTEND_URL = "https://tradefxbook-clone-six.vercel.app"
 # For local development override:
 [dev]
 port = 8787
+
+# ─────────────────────────────────────────────────────────────────────────────
+# AI Binding
+# ─────────────────────────────────────────────────────────────────────────────
+[ai]
+binding = "AI"

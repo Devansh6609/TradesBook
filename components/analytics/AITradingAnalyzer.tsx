@@ -292,7 +292,8 @@ export default function AITradingAnalyzer({ trades, className }: AITradingAnalyz
         }, 150)
 
         try {
-            const res = await fetch('/api/ai-analysis', {
+            const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8787';
+            const res = await fetch(`${apiUrl}/api/ai-analysis`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ trades: filteredTrades, timeframe: period }),

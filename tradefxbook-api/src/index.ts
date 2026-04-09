@@ -12,6 +12,7 @@ import screenshots from './routes/screenshots';
 import strategies from './routes/strategies';
 import tags      from './routes/tags';
 import settings  from './routes/settings';
+import accounts  from './routes/accounts';
 import analytics from './routes/analytics';
 import mt5       from './routes/mt5';
 import images    from './routes/images';
@@ -68,6 +69,7 @@ app.route('/api/trades', screenshots);      // /:id/screenshots routes
 app.route('/api/strategies', strategies);
 app.route('/api/tags', tags);
 app.route('/api/settings', settings);
+app.route('/api/accounts', accounts);
 app.route('/api/analytics', analytics);
 app.route('/api/mt5-webhook', mt5);
 app.route('/api/images', images);

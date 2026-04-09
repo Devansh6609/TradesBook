@@ -114,16 +114,19 @@ export default function PerformancePage() {
   const longShortData = useMemo(() => {
     if (analyticsData?.longShortPerformance) return analyticsData.longShortPerformance;
     
+    const longTrades = trades.filter(t => ['BUY', 'LONG'].includes(String(t.type).toUpperCase()));
+    const shortTrades = trades.filter(t => ['SELL', 'SHORT'].includes(String(t.type).toUpperCase()));
+
     return {
       long: {
-        trades: trades.filter(t => t.type === 'BUY').length,
-        pnl: trades.filter(t => t.type === 'BUY').reduce((acc, t) => acc + (t.netPnl || 0), 0),
-        winRate: (trades.filter(t => t.type === 'BUY' && (t.netPnl || 0) > 0).length / (trades.filter(t => t.type === 'BUY').length || 1)) * 100
+        trades: longTrades.length,
+        pnl: longTrades.reduce((acc, t) => acc + (t.netPnl || 0), 0),
+        winRate: (longTrades.filter(t => (t.netPnl || 0) > 0).length / (longTrades.length || 1)) * 100
       },
       short: {
-        trades: trades.filter(t => t.type === 'SELL').length,
-        pnl: trades.filter(t => t.type === 'SELL').reduce((acc, t) => acc + (t.netPnl || 0), 0),
-        winRate: (trades.filter(t => t.type === 'SELL' && (t.netPnl || 0) > 0).length / (trades.filter(t => t.type === 'SELL').length || 1)) * 100
+        trades: shortTrades.length,
+        pnl: shortTrades.reduce((acc, t) => acc + (t.netPnl || 0), 0),
+        winRate: (shortTrades.filter(t => (t.netPnl || 0) > 0).length / (shortTrades.length || 1)) * 100
       }
     }
   }, [analyticsData, trades])
@@ -133,12 +136,17 @@ export default function PerformancePage() {
 
     const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
     const stats = days.map(day => ({ day, pnl: 0, trades: 0, winRate: 0 }));
+    
     trades.forEach(t => {
-      if (!t.exitDate) return;
+      if (!t.exitDate || t.status !== 'CLOSED') return;
       try {
-        const d = new Date(Number(t.exitDate) * 1000).getUTCDay();
-        stats[d].pnl += (t.netPnl || 0);
-        stats[d].trades += 1;
+        const ts = Number(t.exitDate);
+        const dateMs = ts < 10000000000 ? ts * 1000 : ts;
+        const d = new Date(dateMs).getUTCDay();
+        if (stats[d]) {
+          stats[d].pnl += (t.netPnl || 0);
+          stats[d].trades += 1;
+        }
       } catch (e) {}
     });
     return stats;

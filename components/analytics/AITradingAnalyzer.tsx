@@ -203,7 +203,7 @@ function useCountUp(target: number, duration = 1200, decimals = 0) {
 export default function AITradingAnalyzer({ trades, className }: AITradingAnalyzerProps) {
     const [view, setView] = useState<'landing' | 'loading' | 'report'>('landing')
     const [report, setReport] = useState<AIReport | null>(null)
-    const [period, setPeriod] = useState<string>('month')
+    const [period, setPeriod] = useState<string>('all')
     const [showPeriodMenu, setShowPeriodMenu] = useState(false)
     const [loadingStep, setLoadingStep] = useState(0)
     const [progress, setProgress] = useState(0)
@@ -266,7 +266,7 @@ export default function AITradingAnalyzer({ trades, className }: AITradingAnalyz
 
         const filteredTrades = filterTradesByPeriod(trades, period)
         if (filteredTrades.length === 0) {
-            setError('No trades found in this period')
+            setError(`No closed trades found ${period === 'all' ? 'in your history' : 'in the selected period'}. Try selecting a different time frame.`)
             setView('landing')
             return
         }

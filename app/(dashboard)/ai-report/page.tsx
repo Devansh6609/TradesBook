@@ -3,17 +3,15 @@
 import { useQuery } from '@tanstack/react-query'
 import { Loader2 } from 'lucide-react'
 import AITradingAnalyzer from '@/components/analytics/AITradingAnalyzer'
+import { api } from '@/lib/apiClient'
 
 export default function AIReportPage() {
-    const { data: trades = [], isLoading } = useQuery({
-        queryKey: ['trades'],
-        queryFn: async () => {
-            const res = await fetch('/api/trades?limit=1000&status=CLOSED')
-            if (!res.ok) throw new Error('Failed to fetch trades')
-            const data = await res.json()
-            return data.trades || data || []
-        },
+    const { data, isLoading } = useQuery({
+        queryKey: ['trades', 'ai-report'],
+        queryFn: () => api.trades.list({ limit: 1000, status: 'CLOSED' }),
     })
+
+    const trades = data?.trades || []
 
     const closedTrades = trades
         .filter((t: any) => t.status === 'CLOSED')

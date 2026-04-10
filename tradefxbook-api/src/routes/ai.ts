@@ -12,6 +12,7 @@ ai.use('*', authMiddleware);
 const analysisSchema = z.object({
   trades: z.array(z.any()),
   timeframe: z.string(),
+  stats: z.any().optional(), // Receive calculated stats from frontend
 });
 
 ai.post('/', async (c) => {
@@ -25,15 +26,21 @@ ai.post('/', async (c) => {
       return c.json({ error: 'Invalid request body', details: parsed.error.errors }, 400);
     }
 
-    const { trades, timeframe } = parsed.data;
+    const { trades, timeframe, stats } = parsed.data;
 
     if (!trades || trades.length === 0) {
       return c.json({
-        summary: "No trade data available for the selected timeframe. Please add some trades to generate an AI analysis.",
-        stats: { totalPnL: 0, winRate: 0, profitFactor: 0, avgRR: 0 },
-        blindspots: [],
-        patterns: [],
-        actionPlan: []
+        report: {
+          title: "Incomplete History",
+          periodAssessment: "BREAK_EVEN",
+          summary: "No closed trades found for the selected timeframe. Add more trades to generate an AI analysis.",
+          blindspots: [],
+          recurringPatterns: [],
+          worstTradeAnalysis: [],
+          actionPlan: [],
+          stats: stats || { totalPnl: 0, totalTrades: 0, winCount: 0, lossCount: 0, winRate: 0, profitFactor: 0 },
+          generatedAt: new Date().toISOString()
+        }
       });
     }
 
@@ -43,39 +50,58 @@ ai.post('/', async (c) => {
       type: t.type,
       pnl: t.pnl,
       netPnl: t.netPnl,
-      duration: t.exitDate && t.entryDate ? (t.exitDate - t.entryDate) : 'N/A',
+      duration: t.exitDate && t.entryDate ? (new Date(t.exitDate).getTime() - new Date(t.entryDate).getTime()) / (1000 * 60 * 60) : 'N/A', // hours
       rMultiple: t.rMultiple,
-      setup: t.setupType,
+      setup: t.setupType || t.strategyId,
       emotion: t.entryEmotion
-    })).slice(0, 50); // Limit to top 50 trades to stay within context limits
+    })).slice(0, 50);
 
     const systemPrompt = `You are an elite Trading Performance Analyst. Your goal is to analyze a trader's performance data and provide a deep, actionable, and data-driven psychological and technical report.
 Your response MUST be a valid JSON object. Do not include any text before or after the JSON.
 
-Expected JSON Schema:
+Expected JSON Schema (AIReport):
 {
-  "summary": "A concise, professional overview of the trader's performance (2-3 sentences).",
-  "stats": {
-    "totalPnL": number,
-    "winRate": number,
-    "profitFactor": number,
-    "avgRR": number
-  },
+  "title": "A punchy, descriptive title for this report",
+  "periodAssessment": "PROFITABLE" | "BREAK_EVEN" | "LOSING",
+  "summary": "A deep analysis of the trader's current state, identifying their primary strength and biggest obstacle (3-4 sentences).",
   "blindspots": [
-    { "title": "Short title", "description": "Specific psychological or technical blindspot identified.", "severity": "high" | "medium" | "low" }
+    { 
+      "title": "Short title (e.g., Revenge Trading)", 
+      "severity": "CRITICAL" | "WARNING" | "INFO",
+      "description": "Specific psychological or technical blindspot identified.",
+      "evidence": "Data point from the trades justifying this insight.",
+      "recommendation": "Specific action to fix or improve."
+    }
   ],
-  "patterns": [
-    { "behavior": "Recurring behavior", "impact": "negative" | "positive", "recommendation": "Specific action to fix or improve." }
+  "recurringPatterns": [
+    { 
+      "title": "e.g., Morning Glory", 
+      "pnl": number,
+      "description": "Description of the recurring pattern (positive or negative).", 
+      "tradeCount": number,
+      "isPositive": boolean 
+    }
+  ],
+  "worstTradeAnalysis": [
+    { "whatWentWrong": "Summary of execution error", "lesson": "A concrete rule to prevent recurrence" }
   ],
   "actionPlan": [
-    { "step": "Clear actionable step", "timeframe": "e.g., Next 10 trades", "priority": "high" | "medium" | "low" }
+    { 
+      "title": "Clear actionable step", 
+      "priority": "FIRST PRIORITY" | "IMPORTANT" | "OPTIMIZATION", 
+      "description": "Detailed explanation of what to do.",
+      "measureSuccess": "A metric to track if this step is working."
+    }
   ]
-}`;
+}
+
+Ensure the report is elite, looks past the surface, and feels like a $1000/hr consultant wrote it.`;
 
     const userPrompt = `Analyze these trades from the ${timeframe} period:
-${JSON.stringify(tradeSummary, null, 2)}
+Trade Data Summary: ${JSON.stringify(tradeSummary, null, 2)}
+Performance Stats: ${JSON.stringify(stats, null, 2)}
 
-Provide a detailed report in the specified JSON format.`;
+Provide a detailed report in the specified JSON format. Your generated report will be shown to the user immediately. Avoid generic advice; use the specific evidence from the trades.`;
 
     const aiResponse = await c.env.AI.run('@cf/meta/llama-3-8b-instruct', {
       messages: [
@@ -86,11 +112,10 @@ Provide a detailed report in the specified JSON format.`;
 
     let result;
     try {
-      // The AI might return the JSON wrapped in markdown or with extra text
       const content = aiResponse.response || aiResponse.content || "";
       const jsonMatch = content.match(/\{[\s\S]*\}/);
       if (jsonMatch) {
-        result = JSON.parse(jsonMatch[0]);
+        result = JSON.parse(jsonMatch[jsonMatch.length - 1]); // Get the last JSON block if multiple exist
       } else {
         throw new Error("No JSON found in AI response");
       }
@@ -99,7 +124,14 @@ Provide a detailed report in the specified JSON format.`;
       return c.json({ error: "Failed to parse AI response into the required report format." }, 500);
     }
 
-    return c.json(result);
+    // Merge with frontend stats and add timestamp
+    const fullReport = {
+      ...result,
+      stats: stats || result.stats,
+      generatedAt: new Date().toISOString()
+    };
+
+    return c.json({ report: fullReport });
 
   } catch (error: any) {
     console.error("AI Analysis Error:", error);

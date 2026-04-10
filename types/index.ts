@@ -103,6 +103,24 @@ export interface Account {
   lastSyncAt?: string;
 }
 
+export interface FundedAccount {
+  id: string;
+  userId: string;
+  accountId?: string;
+  propFirmName: string;
+  accountSize: number;
+  startingBalance: number;
+  dailyDrawdownLimit: number;
+  maxDrawdownLimit: number;
+  profitTarget: number;
+  status: 'EVALUATION' | 'PASSED' | 'FAILED' | 'FUNDED';
+  step: number;
+  currentStep: number;
+  drawdownType: 'STATIC' | 'TRAILING' | 'TRAILING_HIGH_WATERMARK';
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Settings {
   id: string;
   userId: string;

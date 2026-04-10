@@ -12,6 +12,7 @@ export interface TradingAccount {
   leverage: number;
   isPublic: boolean;
   isVerified: boolean;
+  unrealizedPnl: number;
   lastSyncAt: string | null;
   status: 'ACTIVE' | 'PENDING' | 'ERROR' | 'DISCONNECTED';
 }
@@ -252,6 +253,18 @@ export const api = {
         body: JSON.stringify({ content }),
       }),
     leaderboard: () => request<{ leaderboard: LeaderboardEntry[] }>('/api/community/leaderboard'),
+  },
+
+  // ─── Funded Accounts ─────────────────────────────────────────────────────
+  fundedAccounts: {
+    list: () => request<{ fundedAccounts: FundedAccount[] }>('/api/funded-accounts'),
+    get: (id: string) => request<FundedAccount>(`/api/funded-accounts/${id}`),
+    create: (data: any) =>
+      request<FundedAccount>('/api/funded-accounts', { method: 'POST', body: JSON.stringify(data) }),
+    update: (id: string, data: any) =>
+      request<FundedAccount>(`/api/funded-accounts/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    delete: (id: string) => request<{ message: string }>(`/api/funded-accounts/${id}`, { method: 'DELETE' }),
+    getStats: (id: string) => request<any>(`/api/funded-accounts/${id}/stats`),
   },
 };
 

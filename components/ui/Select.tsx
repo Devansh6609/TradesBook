@@ -43,8 +43,9 @@ export function Select({
   const selectedValues = Array.isArray(value) ? value : value ? [value] : []
 
   const filteredOptions = React.useMemo(() => {
-    if (!searchable || !searchQuery) return options
-    return options.filter(opt =>
+    const opts = options || []
+    if (!searchable || !searchQuery) return opts
+    return opts.filter(opt =>
       opt.label.toLowerCase().includes(searchQuery.toLowerCase())
     )
   }, [options, searchable, searchQuery])

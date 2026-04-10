@@ -15,13 +15,53 @@ analytics.use('*', authMiddleware);
 // GET /api/analytics/live — real-time account summary
 analytics.get('/live', async (c) => {
   const userId = c.get('userId');
+  const accountId = c.req.query('accountId');
 
   try {
-    const settings = await queryOne<{ accountBalance: number; unrealizedPnl: number }>(
-      c.env.DB,
-      `SELECT accountBalance, unrealizedPnl FROM settings WHERE userId = ?`,
-      [userId],
-    );
+    let accountInfo: { accountBalance: number; unrealizedPnl: number };
+    
+    if (accountId) {
+      const row = await queryOne<{ accountBalance: number; unrealizedPnl: number }>(
+        c.env.DB,
+        `SELECT accountBalance, unrealizedPnl FROM accounts WHERE userId = ? AND id = ?`,
+        [userId, accountId],
+      );
+      accountInfo = {
+        accountBalance: row?.accountBalance ?? 0,
+        unrealizedPnl: row?.unrealizedPnl ?? 0,
+      };
+    } else {
+      const row = await queryOne<{ accountBalance: number; unrealizedPnl: number }>(
+        c.env.DB,
+        `SELECT SUM(accountBalance) as accountBalance, SUM(unrealizedPnl) as unrealizedPnl FROM accounts WHERE userId = ?`,
+        [userId],
+      );
+      accountInfo = {
+        accountBalance: row?.accountBalance ?? 0,
+        unrealizedPnl: row?.unrealizedPnl ?? 0,
+      };
+    }
+
+    let statsQuery = `
+      SELECT 
+         SUM(CASE WHEN status = 'OPEN' THEN 1 ELSE 0 END) as open,
+         SUM(CASE WHEN status = 'CLOSED' THEN 1 ELSE 0 END) as closed,
+         SUM(CASE WHEN status = 'CLOSED' AND pnl > 0 THEN 1 ELSE 0 END) as winning,
+         SUM(pnl) as totalPnl,
+         SUM(netPnl) as totalNetPnl,
+         SUM(commission) as totalCommission,
+         SUM(swap) as totalSwap,
+         AVG(CASE WHEN pnl > 0 THEN pnl END) as avgWin,
+         AVG(CASE WHEN pnl < 0 THEN pnl END) as avgLoss,
+         MAX(pnl) as bestTrade,
+         MIN(pnl) as worstTrade
+       FROM trades WHERE userId = ?
+    `;
+    const statsParams: any[] = [userId];
+    if (accountId) {
+      statsQuery += ` AND accountId = ?`;
+      statsParams.push(accountId);
+    }
 
     const stats = await queryOne<{ 
       open: number; 
@@ -35,23 +75,13 @@ analytics.get('/live', async (c) => {
       avgLoss: number | null;
       bestTrade: number | null;
       worstTrade: number | null;
-    }>(
-      c.env.DB,
-      `SELECT 
-         SUM(CASE WHEN status = 'OPEN' THEN 1 ELSE 0 END) as open,
-         SUM(CASE WHEN status = 'CLOSED' THEN 1 ELSE 0 END) as closed,
-         SUM(CASE WHEN status = 'CLOSED' AND pnl > 0 THEN 1 ELSE 0 END) as winning,
-         SUM(pnl) as totalPnl,
-         SUM(netPnl) as totalNetPnl,
-         SUM(commission) as totalCommission,
-         SUM(swap) as totalSwap,
-         AVG(CASE WHEN pnl > 0 THEN pnl END) as avgWin,
-         AVG(CASE WHEN pnl < 0 THEN pnl END) as avgLoss,
-         MAX(pnl) as bestTrade,
-         MIN(pnl) as worstTrade
-       FROM trades WHERE userId = ?`,
-      [userId],
-    );
+    }>(c.env.DB, statsQuery, statsParams);
+
+    const initialBalance = accountInfo.accountBalance;
+    const unrealizedPnl = accountInfo.unrealizedPnl;
+    const equity = initialBalance + unrealizedPnl;
+    const closedCount = stats?.closed ?? 0;
+    const winRate = closedCount > 0 ? ((stats?.winning ?? 0) / closedCount) * 100 : 0;
 
     await c.env.DB.prepare(`
       UPDATE sync_requests SET status = 'COMPLETED', updatedAt = unixepoch()
@@ -63,12 +93,6 @@ analytics.get('/live', async (c) => {
       `SELECT id FROM sync_requests WHERE userId = ? AND status IN ('PENDING', 'PROCESSING') ORDER BY createdAt DESC LIMIT 1`,
       [userId],
     );
-
-    const initialBalance = settings?.accountBalance ?? 0;
-    const unrealizedPnl = settings?.unrealizedPnl ?? 0;
-    const equity = initialBalance + unrealizedPnl;
-    const closedCount = stats?.closed ?? 0;
-    const winRate = closedCount > 0 ? ((stats?.winning ?? 0) / closedCount) * 100 : 0;
 
     return c.json({
       initialBalance,

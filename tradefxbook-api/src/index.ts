@@ -17,7 +17,6 @@ import analytics from './routes/analytics';
 import mt5       from './routes/mt5';
 import images    from './routes/images';
 import ai        from './routes/ai';
-import fundedAccounts from './routes/fundedAccounts';
 
 // ─── Bindings type (matches wrangler.toml) ───────────────────────────────────
 export type Bindings = {
@@ -75,7 +74,6 @@ app.route('/api/analytics', analytics);
 app.route('/api/mt5-webhook', mt5);
 app.route('/api/images', images);
 app.route('/api/ai-analysis', ai);
-app.route('/api/funded-accounts', fundedAccounts);
 
 // ─── 404 fallback ────────────────────────────────────────────────────────────
 app.notFound((c) => c.json({ error: 'Route not found' }, 404));

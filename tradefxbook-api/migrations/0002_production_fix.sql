@@ -1,6 +1,4 @@
--- FORCE CAMELCASE SCHEMA FIX FOR PRODUCTION
--- This script drops and recreates the core tables to ensure columns match the codebase exactly (camelCase).
--- WARNING: This will delete existing data in production, which is necessary since the schema was invalid.
+PRAGMA foreign_keys = OFF;
 
 DROP TABLE IF EXISTS "sessions";
 DROP TABLE IF EXISTS "sync_requests";
@@ -12,7 +10,10 @@ DROP TABLE IF EXISTS "partial_closes";
 DROP TABLE IF EXISTS "trades";
 DROP TABLE IF EXISTS "strategies";
 DROP TABLE IF EXISTS "accounts";
+DROP TABLE IF EXISTS "funded_accounts";
 DROP TABLE IF EXISTS "users";
+
+PRAGMA foreign_keys = ON;
 
 -- 1. Users
 CREATE TABLE "users" (
@@ -173,3 +174,5 @@ CREATE TABLE "screenshots" (
     "createdAt" INTEGER NOT NULL,
     CONSTRAINT "screenshots_tradeId_fkey" FOREIGN KEY ("tradeId") REFERENCES "trades" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
+
+PRAGMA foreign_keys = ON;

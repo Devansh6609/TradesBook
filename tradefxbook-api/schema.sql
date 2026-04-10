@@ -269,27 +269,3 @@ CREATE TABLE IF NOT EXISTS reactions (
   UNIQUE (userId, postId)
 );
 CREATE INDEX IF NOT EXISTS idx_reactions_postId ON reactions(postId);
-
--- ─────────────────────────────────────────────────────────────
--- Funded Accounts
--- ─────────────────────────────────────────────────────────────
-CREATE TABLE IF NOT EXISTS funded_accounts (
-  id                  TEXT PRIMARY KEY,
-  userId              TEXT NOT NULL,
-  accountId           TEXT,
-  propFirmName        TEXT NOT NULL,
-  accountSize         REAL NOT NULL,
-  startingBalance     REAL NOT NULL,
-  dailyDrawdownLimit  REAL NOT NULL,
-  maxDrawdownLimit    REAL NOT NULL,
-  profitTarget        REAL NOT NULL,
-  status              TEXT NOT NULL DEFAULT 'EVALUATION',
-  step                INTEGER NOT NULL DEFAULT 1,
-  currentStep         INTEGER NOT NULL DEFAULT 1,
-  drawdownType        TEXT NOT NULL DEFAULT 'STATIC',
-  createdAt           INTEGER NOT NULL DEFAULT (unixepoch()),
-  updatedAt           INTEGER NOT NULL DEFAULT (unixepoch()),
-  FOREIGN KEY (userId)    REFERENCES users(id)    ON DELETE CASCADE,
-  FOREIGN KEY (accountId) REFERENCES accounts(id) ON DELETE SET NULL
-);
-CREATE INDEX IF NOT EXISTS idx_funded_accounts_userId ON funded_accounts(userId);

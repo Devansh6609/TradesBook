@@ -107,13 +107,6 @@ export default function ToolsPage() {
             status: 'available' as const
         },
         {
-            title: 'Funded Account Tracker',
-            description: 'Track your prop firm evaluations, monitor drawdown, and reach your profit targets.',
-            icon: <Target className="w-6 h-6 text-blue-400" />,
-            href: '/tools/funded-accounts',
-            status: 'popular' as const
-        },
-        {
             title: 'Demo Trading',
             description: 'Practice trading strategies risk-free with virtual funds',
             icon: <PlayCircle className="w-6 h-6 text-blue-400" />,

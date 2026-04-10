@@ -61,7 +61,8 @@ export default function SettingsPage() {
   const { data: settings, isLoading } = useQuery<Settings>({
     queryKey: ['settings'],
     queryFn: async () => {
-      return api.settings.get()
+      const data = await api.settings.get()
+      return (data as unknown) as Settings
     }
   })
 
@@ -88,7 +89,7 @@ export default function SettingsPage() {
   })
 
   const updateSetting = (key: keyof Settings, value: any) => {
-    mutation.mutate({ [key]: value })
+    mutation.mutate({ [key]: value } as Partial<Settings>)
   }
 
   if (isLoading) {

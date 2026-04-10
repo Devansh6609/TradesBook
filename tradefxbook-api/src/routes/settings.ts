@@ -130,4 +130,22 @@ settings.put('/', async (c) => {
   return c.json(serialize(row!));
 });
 
+settings.delete('/data', async (c) => {
+  const userId = c.get('userId');
+  try {
+    // Delete all user related data
+    await execute(c.env.DB, 'DELETE FROM trade_tags WHERE tradeId IN (SELECT id FROM trades WHERE userId = ?)', [userId]);
+    await execute(c.env.DB, 'DELETE FROM screenshots WHERE tradeId IN (SELECT id FROM trades WHERE userId = ?)', [userId]);
+    await execute(c.env.DB, 'DELETE FROM partial_closes WHERE tradeId IN (SELECT id FROM trades WHERE userId = ?)', [userId]);
+    await execute(c.env.DB, 'DELETE FROM trades WHERE userId = ?', [userId]);
+    await execute(c.env.DB, 'DELETE FROM strategies WHERE userId = ?', [userId]);
+    await execute(c.env.DB, 'DELETE FROM tags WHERE userId = ?', [userId]);
+    
+    return c.json({ success: true, message: 'All account data has been wiped.' });
+  } catch (err: any) {
+    console.error('Account wipe error:', err);
+    return c.json({ error: 'Internal server error', message: err.message }, 500);
+  }
+});
+
 export default settings;

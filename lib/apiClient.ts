@@ -134,6 +134,7 @@ export const api = {
     update: (id: string, data: Partial<CreateTradeInput>) =>
       request<Trade>(`/api/trades/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     delete: (id: string) => request<{ message: string }>(`/api/trades/${id}`, { method: 'DELETE' }),
+    bulkImport: (data: any) => request<{ success: boolean; count: number }>('/api/trades/bulk', { method: 'POST', body: JSON.stringify(data) }),
   },
 
   // ─── Screenshots ─────────────────────────────────────────────────────────
@@ -181,6 +182,7 @@ export const api = {
     get: () => request<Settings>('/api/settings'),
     update: (data: Partial<Settings>) =>
       request<Settings>('/api/settings', { method: 'PUT', body: JSON.stringify(data) }),
+    clearData: () => request<{ message: string }>('/api/settings/data', { method: 'DELETE' }),
   },
 
   // ─── Analytics ───────────────────────────────────────────────────────────

@@ -12,6 +12,7 @@ import { SessionStats } from '@/components/backtesting/SessionStats'
 import { SessionSummary } from '@/components/backtesting/SessionSummary'
 import { ReplayConfig, Timeframe } from '@/lib/backtesting/types'
 import { SpeedOption } from '@/lib/backtesting/useReplayEngine'
+import { api } from '@/lib/apiClient'
 import toast from 'react-hot-toast'
 
 export default function BacktestingPage() {
@@ -54,15 +55,12 @@ export default function BacktestingPage() {
                 notes: `[Replay] Exit: ${t.exitReason}`,
                 tags: ['replay', 'backtesting'],
             }))
-            const res = await fetch('/api/trades/bulk', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ trades }),
-            })
-            if (res.ok) toast.success(`${trades.length} trades saved to your journal!`)
-            else toast.success('Session recorded!')
-        } catch {
-            toast.success('Session noted.')
+            
+            await api.trades.bulkImport({ trades })
+            toast.success(`${trades.length} trades saved to your journal!`)
+        } catch (err) {
+            console.error('Failed to save replay trades:', err)
+            toast.error('Failed to save to journal.')
         }
     }
 

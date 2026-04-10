@@ -13,6 +13,7 @@ import { Button } from '@/components/ui/Button'
 import { Switch } from '@/components/ui/Switch'
 import { Select } from '@/components/ui/Select'
 import { Modal } from '@/components/ui/Modal'
+import { api } from '@/lib/apiClient'
 
 interface Settings {
   id: string
@@ -60,22 +61,14 @@ export default function SettingsPage() {
   const { data: settings, isLoading } = useQuery<Settings>({
     queryKey: ['settings'],
     queryFn: async () => {
-      const res = await fetch('/api/settings')
-      if (!res.ok) throw new Error('Failed to fetch settings')
-      return res.json()
+      return api.settings.get()
     }
   })
 
   // Update Settings Mutation
   const mutation = useMutation({
     mutationFn: async (newSettings: Partial<Settings>) => {
-      const res = await fetch('/api/settings', {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newSettings)
-      })
-      if (!res.ok) throw new Error('Failed to update settings')
-      return res.json()
+      return api.settings.update(newSettings as any)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['settings'] })
@@ -85,9 +78,7 @@ export default function SettingsPage() {
   // Clear Data Mutation
   const clearDataMutation = useMutation({
     mutationFn: async () => {
-      const res = await fetch('/api/settings/data', { method: 'DELETE' })
-      if (!res.ok) throw new Error('Failed to clear data')
-      return res.json()
+      return api.settings.clearData()
     },
     onSuccess: () => {
       setIsClearDataModalOpen(false)

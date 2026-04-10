@@ -400,6 +400,59 @@ trades.post('/', async (c) => {
   }
 });
 
+// ─── POST /api/trades/bulk ──────────────────────────────────────────────────
+const bulkCreateSchema = z.object({
+  trades: z.array(createSchema),
+});
+
+trades.post('/bulk', async (c) => {
+  const userId = c.get('userId');
+  try {
+    const body = await c.req.json();
+    const parsed = bulkCreateSchema.safeParse(body);
+    if (!parsed.success) return c.json({ error: 'Validation failed', details: parsed.error.errors }, 400);
+
+    const results = [];
+    const now = Math.floor(Date.now() / 1000);
+
+    for (const d of parsed.data.trades) {
+      const entryDate = toUnix(d.entryDate);
+      const exitDate  = d.exitDate ? toUnix(d.exitDate) : null;
+      
+      let pnl = 0, pnlPct = 0, netPnl = 0, rMultiple: number | null = null;
+      if (d.exitPrice && d.status === 'CLOSED') {
+        const result = calculatePnL(d.type, d.entryPrice, d.exitPrice, d.quantity, d.symbol, d.commission, d.swap, d.fees, d.stopLoss);
+        pnl = result.pnl;
+        netPnl = result.netPnL;
+        rMultiple = result.rMultiple;
+        const posVal = d.entryPrice * d.quantity;
+        pnlPct = posVal > 0 ? (pnl / posVal) * 100 : 0;
+      }
+
+      const id = generateId();
+      await execute(c.env.DB, `
+        INSERT INTO trades (
+          id, userId, symbol, type, entryPrice, exitPrice, entryDate, exitDate,
+          quantity, stopLoss, takeProfit, pnl, pnlPercentage, commission, swap, fees,
+          netPnl, rMultiple, status, strategyId, createdAt, updatedAt
+        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+        [
+          id, userId, d.symbol, d.type, d.entryPrice, d.exitPrice,
+          entryDate, exitDate, d.quantity, d.stopLoss, d.takeProfit,
+          pnl, pnlPct, d.commission, d.swap, d.fees, netPnl, rMultiple,
+          d.status, d.strategyId, now, now
+        ]
+      );
+      results.push(id);
+    }
+
+    return c.json({ success: true, count: results.length });
+  } catch (err: any) {
+    console.error('Bulk import error:', err);
+    return c.json({ error: 'Internal server error', message: err.message }, 500);
+  }
+});
+
 // ─── PUT /api/trades/:id ───────────────────────────────────────────────────
 const updateSchema = createSchema.partial();
 
